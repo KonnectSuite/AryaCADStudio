@@ -84,6 +84,14 @@ struct LibraryEntry {
 static PROJECT_DIR: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
     std::sync::OnceLock::new();
 
+/// The project file currently open, if any.
+static PROJECT_FILE: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
+    std::sync::OnceLock::new();
+
+fn project_file() -> &'static std::sync::RwLock<Option<std::path::PathBuf>> {
+    PROJECT_FILE.get_or_init(|| std::sync::RwLock::new(None))
+}
+
 fn project_dir() -> &'static std::sync::RwLock<Option<std::path::PathBuf>> {
     PROJECT_DIR.get_or_init(|| std::sync::RwLock::new(None))
 }
@@ -3309,6 +3317,160 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Task::none()
     }
 
+    /// `ELECPROJNEW <folder> [file.eprj]` writes a project file listing the drawings.
+    ///
+    /// A folder of DXFs is not a project: the order matters (sheet 1 before sheet 2), and
+    /// numbering, cross references and reports all need to agree on which sheets belong
+    /// together. The file is plain text so it can be read, edited and diffed.
+    pub(super) fn elec_proj_new(&mut self, folder: &str, file: Option<&str>) -> Task<Message> {
+        let directory = std::path::Path::new(folder);
+        if !directory.is_dir() {
+            let message = format!("ELECPROJNEW: {folder} is not a folder.");
+            self.command_line.push_output(&message);
+            return Task::none();
+        }
+        let mut sheets: Vec<String> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(directory) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
+                {
+                    continue;
+                }
+                if let Some(name) = path.file_name().and_then(|name| name.to_str()) {
+                    sheets.push(name.to_string());
+                }
+            }
+        }
+        sheets.sort();
+        if sheets.is_empty() {
+            let message = format!("ELECPROJNEW: no .dxf drawings in {folder}.");
+            self.command_line.push_output(&message);
+            return Task::none();
+        }
+
+        let path = match file {
+            Some(path) => std::path::PathBuf::from(path),
+            None => directory.join("project.eprj"),
+        };
+        let mut text = String::from(
+            "# AryaCAD electrical project\n# one sheet per line, in drawing order\n",
+        );
+        for sheet in &sheets {
+            text.push_str(&format!("sheet {sheet}\n"));
+        }
+        match std::fs::write(&path, text) {
+            Ok(()) => {
+                if let Ok(mut guard) = project_file().write() {
+                    *guard = Some(path.clone());
+                }
+                let message = format!(
+                    "ELECPROJNEW: {} sheet(s) written to {}.",
+                    sheets.len(),
+                    path.display()
+                );
+                self.command_line.push_output(&message);
+            }
+            Err(error) => {
+                let message = format!("ELECPROJNEW: cannot write {}: {error}", path.display());
+                self.command_line.push_output(&message);
+            }
+        }
+        Task::none()
+    }
+
+    /// `ELECPROJOPEN <file.eprj>` opens a project file.
+    pub(super) fn elec_proj_open(&mut self, path: &str) -> Task<Message> {
+        match Self::read_project(path) {
+            Ok(sheets) => {
+                if let Ok(mut guard) = project_file().write() {
+                    *guard = Some(std::path::PathBuf::from(path));
+                }
+                let message = format!(
+                    "ELECPROJOPEN: {path} - {} sheet(s).",
+                    sheets.len()
+                );
+                self.command_line.push_output(&message);
+                for (index, sheet) in sheets.iter().enumerate().take(10) {
+                    let line = format!("  {:>3}  {}", index + 1, sheet.display());
+                    self.command_line.push_output(&line);
+                }
+                if sheets.len() > 10 {
+                    let line = format!("  ... and {} more", sheets.len() - 10);
+                    self.command_line.push_output(&line);
+                }
+            }
+            Err(error) => {
+                let message = format!("ELECPROJOPEN: {error}");
+                self.command_line.push_output(&message);
+            }
+        }
+        Task::none()
+    }
+
+    /// `ELECPROJLIST` shows the open project's sheets.
+    pub(super) fn elec_proj_list(&mut self) -> Task<Message> {
+        let Some(path) = project_file().read().ok().and_then(|guard| guard.clone()) else {
+            self.command_line
+                .push_output("ELECPROJLIST: no project open (ELECPROJNEW / ELECPROJOPEN).");
+            return Task::none();
+        };
+        match Self::read_project(&path.display().to_string()) {
+            Ok(sheets) => {
+                let message = format!("ELECPROJLIST: {} - {} sheet(s).", path.display(), sheets.len());
+                self.command_line.push_output(&message);
+                for (index, sheet) in sheets.iter().enumerate().take(20) {
+                    let line = format!("  {:>3}  {}", index + 1, sheet.display());
+                    self.command_line.push_output(&line);
+                }
+            }
+            Err(error) => {
+                let message = format!("ELECPROJLIST: {error}");
+                self.command_line.push_output(&message);
+            }
+        }
+        Task::none()
+    }
+
+    /// Reads a project file and resolves its sheets to paths.
+    fn read_project(path: &str) -> Result<Vec<std::path::PathBuf>, String> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|error| format!("cannot read {path}: {error}"))?;
+        let base = std::path::Path::new(path)
+            .parent()
+            .map(|parent| parent.to_path_buf())
+            .unwrap_or_default();
+        let mut sheets = Vec::new();
+        for line in text.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let Some(name) = line.strip_prefix("sheet ") else {
+                continue;
+            };
+            let name = name.trim();
+            if name.is_empty() {
+                continue;
+            }
+            let candidate = std::path::Path::new(name);
+            let resolved = if candidate.is_absolute() {
+                candidate.to_path_buf()
+            } else {
+                base.join(candidate)
+            };
+            if resolved.is_file() {
+                sheets.push(resolved);
+            }
+        }
+        if sheets.is_empty() {
+            return Err(format!("{path} lists no sheets that exist on disk"));
+        }
+        Ok(sheets)
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -3410,6 +3572,22 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 }
                 if cmd == "ELECNEW" {
                     return Some(self.elec_new(i, None));
+                }
+                if cmd == "ELECPROJLIST" {
+                    return Some(self.elec_proj_list());
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPROJOPEN ") {
+                    let path = argument.trim();
+                    if !path.is_empty() {
+                        return Some(self.elec_proj_open(path));
+                    }
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPROJNEW ") {
+                    let mut words = argument.split_whitespace();
+                    if let Some(folder) = words.next() {
+                        let file = words.next();
+                        return Some(self.elec_proj_new(folder, file));
+                    }
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECPANEL ") {
                     let path = argument.trim();

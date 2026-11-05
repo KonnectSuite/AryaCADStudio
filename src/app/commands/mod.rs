@@ -1310,6 +1310,9 @@ inventory::submit!(crate::command::CommandRegistration {
         "ELECPLC",
         "ELECPLCNEXT",
         "ELECPANEL",
+        "ELECPROJNEW",
+        "ELECPROJOPEN",
+        "ELECPROJLIST",
         "ELECPROJECT",
         "ELECWIRE",
         "ELECMAKESYMBOL",
@@ -1927,6 +1930,7 @@ mod ribbon_highlight_tests {
         assert_eq!(app.ribbon.active_tool(), None);
     }
 }
+
 
 
 
