@@ -2596,32 +2596,43 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     /// if it knows which sheet the other part is on. This is the smallest version of that -
     /// scan, aggregate, report - and it runs on the real project exports rather than a
     /// fixture.
-    pub(super) fn elec_project(&mut self, folder: &str, out_path: Option<&str>) -> Task<Message> {
-        let directory = std::path::Path::new(folder);
-        if !directory.is_dir() {
-            let message = format!("ELECPROJECT: {folder} is not a folder.");
-            self.command_line.push_output(&message);
-            return Task::none();
-        }
-
-        if let Ok(mut guard) = project_dir().write() {
-            *guard = Some(directory.to_path_buf());
-        }
+    pub(super) fn elec_project(&mut self, folder: Option<&str>, out_path: Option<&str>) -> Task<Message> {
+        // With no folder argument the open project file decides which sheets are read.
         let mut sheets: Vec<std::path::PathBuf> = Vec::new();
-        if let Ok(entries) = std::fs::read_dir(directory) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
-                {
-                    sheets.push(path);
+        if let Some(folder) = folder {
+            let directory = std::path::Path::new(folder);
+            if !directory.is_dir() {
+                let message = format!("ELECPROJECT: {folder} is not a folder.");
+                self.command_line.push_output(&message);
+                return Task::none();
+            }
+            if let Ok(entries) = std::fs::read_dir(directory) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
+                    {
+                        sheets.push(path);
+                    }
                 }
             }
+            if let Ok(mut guard) = project_dir().write() {
+                *guard = Some(directory.to_path_buf());
+            }
+        } else {
+            sheets = Self::project_sheets();
+            if sheets.is_empty() {
+                self.command_line.push_output(
+                    "ELECPROJECT: no project open (ELECPROJNEW/ELECPROJOPEN) and no folder given.",
+                );
+                return Task::none();
+            }
         }
+
         sheets.sort();
         if sheets.is_empty() {
-            let message = format!("ELECPROJECT: no .dxf drawings in {folder}.");
+            let message = format!("ELECPROJECT: no .dxf drawings in {}." , folder.unwrap_or("the project"));
             self.command_line.push_output(&message);
             return Task::none();
         }
@@ -3136,39 +3147,33 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         let mut highest: Option<(usize, usize)> = None;
         let mut note: Option<String> = None;
 
-        // Addresses already on other sheets, from the remembered project folder.
-        if let Some(folder) = project_dir().read().ok().and_then(|guard| guard.clone()) {
-            if let Ok(entries) = std::fs::read_dir(&folder) {
-                let mut scanned = 0usize;
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if !path
-                        .extension()
-                        .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
-                    {
-                        continue;
-                    }
-                    let Ok(document) = crate::io::load_file(&path) else {
-                        continue;
-                    };
-                    scanned += 1;
-                    for component in Self::components_of(&document) {
-                        for (name, value) in component.attributes.iter() {
-                            if !name.trim().to_ascii_uppercase().starts_with("ADDR") {
-                                continue;
-                            }
-                            if let Some(position) = Self::plc_parse_address(value, prefix) {
-                                highest = Some(match highest {
-                                    Some(current) if current >= position => current,
-                                    _ => position,
-                                });
-                            }
+        // Addresses already used by the project: the open project file if there is one,
+        // otherwise the folder the last ELECPROJECT scanned. One source of truth, so the
+        // sequence cannot disagree with the reports.
+        let project_sheets = Self::project_sheets();
+        if !project_sheets.is_empty() {
+            let mut scanned = 0usize;
+            for path in &project_sheets {
+                let Ok(document) = crate::io::load_file(path) else {
+                    continue;
+                };
+                scanned += 1;
+                for component in Self::components_of(&document) {
+                    for (name, value) in component.attributes.iter() {
+                        if !name.trim().to_ascii_uppercase().starts_with("ADDR") {
+                            continue;
+                        }
+                        if let Some(position) = Self::plc_parse_address(value, prefix) {
+                            highest = Some(match highest {
+                                Some(current) if current >= position => current,
+                                _ => position,
+                            });
                         }
                     }
                 }
-                if scanned > 0 {
-                    note = Some(format!("{scanned} sheet(s) in the project"));
-                }
+            }
+            if scanned > 0 {
+                note = Some(format!("{scanned} sheet(s) in the project"));
             }
         }
 
@@ -3434,6 +3439,36 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Task::none()
     }
 
+    /// The sheets of the current project.
+    ///
+    /// The open project file wins; falling back to the last scanned folder keeps the older
+    /// `ELECPROJECT <folder>` workflow working. Numbering and reports both go through here,
+    /// so they cannot disagree about which sheets belong to the project.
+    fn project_sheets() -> Vec<std::path::PathBuf> {
+        if let Some(file) = project_file().read().ok().and_then(|guard| guard.clone()) {
+            if let Ok(sheets) = Self::read_project(&file.display().to_string()) {
+                return sheets;
+            }
+        }
+        let Some(folder) = project_dir().read().ok().and_then(|guard| guard.clone()) else {
+            return Vec::new();
+        };
+        let mut sheets: Vec<std::path::PathBuf> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(&folder) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
+                {
+                    sheets.push(path);
+                }
+            }
+        }
+        sheets.sort();
+        sheets
+    }
+
     /// Reads a project file and resolves its sheets to paths.
     fn read_project(path: &str) -> Result<Vec<std::path::PathBuf>, String> {
         let text = std::fs::read_to_string(path)
@@ -3635,13 +3670,17 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                     });
                     return Some(self.elec_plc(i, tag, points, base, at));
                 }
+                if cmd == "ELECPROJECT" {
+                    // No folder: read the open project file.
+                    return Some(self.elec_project(None, None));
+                }
                 if let Some(argument) = cmd.strip_prefix("ELECPROJECT ") {
                     // `ELECPROJECT <folder> [out.xlsx]`: the optional path writes the
                     // project BOM, the per-sheet summary and the class breakdown.
                     let mut words = argument.split_whitespace();
                     if let Some(folder) = words.next() {
                         let out = words.next();
-                        return Some(self.elec_project(folder, out));
+                        return Some(self.elec_project(Some(folder), out));
                     }
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECNEW ") {
