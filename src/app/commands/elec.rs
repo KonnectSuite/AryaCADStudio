@@ -1,4 +1,4 @@
-﻿//! Electrical (ECAD) commands.
+//! Electrical (ECAD) commands.
 //!
 //! These are the host-side features of the electrical layer. They read placed symbols
 //! from the drawing, turn each block insert and its attributes into an `elec::Component`,
@@ -2579,7 +2579,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     /// if it knows which sheet the other part is on. This is the smallest version of that -
     /// scan, aggregate, report - and it runs on the real project exports rather than a
     /// fixture.
-    pub(super) fn elec_project(&mut self, folder: &str) -> Task<Message> {
+    pub(super) fn elec_project(&mut self, folder: &str, out_path: Option<&str>) -> Task<Message> {
         let directory = std::path::Path::new(folder);
         if !directory.is_dir() {
             let message = format!("ELECPROJECT: {folder} is not a folder.");
@@ -2613,6 +2613,8 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         let mut scanned = 0usize;
         let mut failed = 0usize;
         let mut components_total = 0usize;
+        // Sheet -> how many components it contributed, for the workbook's sheet summary.
+        let mut per_sheet: BTreeMap<String, usize> = BTreeMap::new();
 
         for path in &sheets {
             let Ok(document) = crate::io::load_file(path) else {
@@ -2625,8 +2627,10 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 .and_then(|name| name.to_str())
                 .unwrap_or("?")
                 .to_string();
+            let mut on_this_sheet = 0usize;
             for component in Self::components_of(&document) {
                 components_total += 1;
+                on_this_sheet += 1;
                 *classes.entry(component.class.clone()).or_default() += 1;
                 let tag = component.tag.trim().to_string();
                 if !tag.is_empty() {
@@ -2641,6 +2645,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                     entry.1.insert(sheet.clone());
                 }
             }
+            per_sheet.insert(sheet, on_this_sheet);
         }
 
         let multi_sheet: Vec<(&String, &Vec<String>)> = device_sheets
@@ -2685,7 +2690,68 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             }
         }
 
+        if let Some(path) = out_path {
+            match Self::write_project_workbook(path, &parts, &classes, &per_sheet, scanned) {
+                Ok(()) => {
+                    let message = format!(
+                        "  wrote {path}: {} part row(s), {} sheet row(s).",
+                        parts.len(),
+                        per_sheet.len()
+                    );
+                    self.command_line.push_output(&message);
+                }
+                Err(error) => {
+                    let message = format!("  cannot write {path}: {error}");
+                    self.command_line.push_output(&message);
+                }
+            }
+        }
+
         Task::none()
+    }
+
+    /// Writes the project-wide bill of material and per-sheet summary as a workbook.
+    fn write_project_workbook(
+        path: &str,
+        parts: &BTreeMap<String, (usize, BTreeSet<String>)>,
+        classes: &BTreeMap<String, usize>,
+        per_sheet: &BTreeMap<String, usize>,
+        sheets_read: usize,
+    ) -> Result<(), String> {
+        use ::elec::{Cell, Sheet};
+
+        let mut bom = Sheet::new(
+            "Project BOM",
+            &["Part number", "Qty", "Sheets", "Where used"],
+        );
+        let mut rows: Vec<(&String, &(usize, BTreeSet<String>))> = parts.iter().collect();
+        rows.sort_by_key(|(_, (quantity, _))| std::cmp::Reverse(*quantity));
+        for (part, (quantity, sheets)) in rows {
+            bom.push(vec![
+                Cell::text(part.clone()),
+                Cell::number(*quantity as f64),
+                Cell::number(sheets.len() as f64),
+                Cell::text(sheets.iter().cloned().collect::<Vec<_>>().join(", ")),
+            ]);
+        }
+
+        let mut summary = Sheet::new("Sheets", &["Sheet", "Components"]);
+        for (sheet, count) in per_sheet {
+            summary.push(vec![Cell::text(sheet.clone()), Cell::number(*count as f64)]);
+        }
+        summary.push(vec![
+            Cell::text("(sheets read)"),
+            Cell::number(sheets_read as f64),
+        ]);
+
+        let mut by_class = Sheet::new("Classes", &["Class", "Components"]);
+        let mut class_rows: Vec<(&String, &usize)> = classes.iter().collect();
+        class_rows.sort_by_key(|(_, count)| std::cmp::Reverse(**count));
+        for (class, count) in class_rows {
+            by_class.push(vec![Cell::text(class.clone()), Cell::number(*count as f64)]);
+        }
+
+        write_xlsx(path, &[bom, summary, by_class])
     }
 
 
@@ -2791,9 +2857,12 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                     return Some(self.elec_new(i, None));
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECPROJECT ") {
-                    let path = argument.trim();
-                    if !path.is_empty() {
-                        return Some(self.elec_project(path));
+                    // `ELECPROJECT <folder> [out.xlsx]`: the optional path writes the
+                    // project BOM, the per-sheet summary and the class breakdown.
+                    let mut words = argument.split_whitespace();
+                    if let Some(folder) = words.next() {
+                        let out = words.next();
+                        return Some(self.elec_project(folder, out));
                     }
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECNEW ") {
