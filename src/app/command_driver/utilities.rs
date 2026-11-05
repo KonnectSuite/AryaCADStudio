@@ -1090,6 +1090,7 @@ impl OpenCADStudio {
             || tokens[0].eq_ignore_ascii_case("ELECNEW")
             || tokens[0].eq_ignore_ascii_case("ELECPLC")
             || tokens[0].eq_ignore_ascii_case("ELECPLCNEXT")
+            || tokens[0].eq_ignore_ascii_case("ELECPANEL")
             || tokens[0].eq_ignore_ascii_case("ELECPROJECT")
             || tokens[0].eq_ignore_ascii_case("ELECPLACE")
             || tokens[0].eq_ignore_ascii_case("ELECSETATTR")
@@ -1665,6 +1666,7 @@ impl OpenCADStudio {
         self.run_command_line(trimmed)
     }
 }
+
 
 
 

@@ -3209,6 +3209,106 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Some((byte, bit))
     }
 
+    /// `ELECPANEL <out.dxf>` lays the drawing's devices out as a panel.
+    ///
+    /// The schematic says what is connected; a panel drawing says what is bolted to the
+    /// backplate and in what order. This is the smallest honest version: one box per device
+    /// in a grid inside an enclosure, labelled with its tag and class, written to its own
+    /// drawing so the schematic is not touched. Real footprints and dimensions come later.
+    pub(super) fn elec_panel(&mut self, i: usize, path: &str) -> Task<Message> {
+        const CELL: f64 = 20.0;
+        const BOX_W: f64 = 14.0;
+        const BOX_H: f64 = 10.0;
+        const MARGIN: f64 = 10.0;
+
+        let mut devices: Vec<(String, String)> = Vec::new();
+        for component in Self::components_of(&self.tabs[i].scene.document) {
+            let tag = component.tag.trim().to_string();
+            if tag.is_empty() {
+                continue;
+            }
+            if devices.iter().any(|(existing, _)| existing == &tag) {
+                continue;
+            }
+            devices.push((tag, component.class.clone()));
+        }
+        if devices.is_empty() {
+            self.command_line
+                .push_output("ELECPANEL: no tagged devices on this drawing.");
+            return Task::none();
+        }
+        devices.sort();
+
+        let count = devices.len();
+        let columns = (count as f64).sqrt().ceil().max(1.0) as usize;
+        let rows = count.div_ceil(columns);
+        let width = columns as f64 * CELL + MARGIN * 2.0;
+        let height = rows as f64 * CELL + MARGIN * 2.0;
+
+        let mut document = codec::Document::new();
+        let _ = document.layers.add(codec::tables::Layer::new("PANEL"));
+        let _ = document.layers.add(codec::tables::Layer::new("PANEL-TEXT"));
+
+        let mut add_line = |document: &mut codec::Document, ax: f64, ay: f64, bx: f64, by: f64| {
+            let mut line = codec::entities::Line::from_points(
+                codec::types::Vector3::new(ax, ay, 0.0),
+                codec::types::Vector3::new(bx, by, 0.0),
+            );
+            line.common.layer = "PANEL".to_string();
+            let _ = document.add_entity(codec::EntityType::Line(line));
+        };
+        let mut add_text = |document: &mut codec::Document, text: &str, x: f64, y: f64, height: f64| {
+            let mut entity = codec::entities::Text::new();
+            entity.value = text.to_string();
+            entity.height = height;
+            entity.insertion_point = codec::types::Vector3::new(x, y, 0.0);
+            entity.common.layer = "PANEL-TEXT".to_string();
+            let _ = document.add_entity(codec::EntityType::Text(entity));
+        };
+
+        // Enclosure
+        add_line(&mut document, 0.0, 0.0, width, 0.0);
+        add_line(&mut document, width, 0.0, width, height);
+        add_line(&mut document, width, height, 0.0, height);
+        add_line(&mut document, 0.0, height, 0.0, 0.0);
+
+        for (index, (tag, class)) in devices.iter().enumerate() {
+            let column = index % columns;
+            let row = index / columns;
+            let x = MARGIN + column as f64 * CELL;
+            let y = MARGIN + (rows - 1 - row) as f64 * CELL;
+            // Box, drawn from its lower-left corner.
+            add_line(&mut document, x, y, x + BOX_W, y);
+            add_line(&mut document, x + BOX_W, y, x + BOX_W, y + BOX_H);
+            add_line(&mut document, x + BOX_W, y + BOX_H, x, y + BOX_H);
+            add_line(&mut document, x, y + BOX_H, x, y);
+            add_text(&mut document, tag, x + 1.0, y + BOX_H * 0.6, 2.0);
+            add_text(&mut document, class, x + 1.0, y + BOX_H * 0.25, 1.2);
+        }
+
+        add_text(
+            &mut document,
+            &format!("PANEL LAYOUT - {count} device(s)"),
+            MARGIN,
+            height - MARGIN * 0.6,
+            2.5,
+        );
+
+        match crate::io::save(&document, std::path::Path::new(path)) {
+            Ok(()) => {
+                let summary = format!(
+                    "ELECPANEL: {count} device(s) in {columns}x{rows} cells ({width:.0}x{height:.0}); wrote {path}."
+                );
+                self.command_line.push_output(&summary);
+            }
+            Err(error) => {
+                let message = format!("ELECPANEL: cannot write {path}: {error}");
+                self.command_line.push_output(&message);
+            }
+        }
+        Task::none()
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -3310,6 +3410,12 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 }
                 if cmd == "ELECNEW" {
                     return Some(self.elec_new(i, None));
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPANEL ") {
+                    let path = argument.trim();
+                    if !path.is_empty() {
+                        return Some(self.elec_panel(i, path));
+                    }
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECPLCNEXT ") {
                     // ELECPLCNEXT <tag> <points> [prefix] [x,y]
