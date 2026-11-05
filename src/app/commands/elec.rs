@@ -2755,6 +2755,164 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     }
 
 
+    /// `ELECPLC <tag> <points> <base-address> [x,y]` places a PLC I/O module.
+    ///
+    /// Both products this is measured against treat a PLC module as one symbol carrying an
+    /// address per point, so the module can be referenced as a unit while each I/O point
+    /// still has its own address. This builds the module geometry on demand (a body with a
+    /// pin per point), tags it, and writes `ADDR01..ADDRnn` from the base address.
+    pub(super) fn elec_plc(
+        &mut self,
+        i: usize,
+        tag: &str,
+        points: usize,
+        base: &str,
+        at: Option<(f64, f64)>,
+    ) -> Task<Message> {
+        let tag = tag.trim();
+        if tag.is_empty() || points == 0 {
+            self.command_line.push_output(
+                "ELECPLC: use ELECPLC <tag> <points> <base-address> [x,y], e.g. ELECPLC -P1 8 I0.0",
+            );
+            return Task::none();
+        }
+        if points > 128 {
+            self.command_line
+                .push_output("ELECPLC: at most 128 points per module.");
+            return Task::none();
+        }
+        let Some(addresses) = Self::plc_addresses(base, points) else {
+            let message = format!(
+                "ELECPLC: \"{base}\" is not an address like I0.0 or O1.3."
+            );
+            self.command_line.push_output(&message);
+            return Task::none();
+        };
+
+        let block_name = format!("PLC-{points}");
+        let (x, y) = at.unwrap_or((0.0, 0.0));
+
+        // One body with a pin per point, built once and reused for the same point count.
+        if self.tabs[i].scene.document.block_records.get(&block_name).is_none() {
+            let spacing = 0.25_f64;
+            let width = 0.8_f64;
+            let mut entities: Vec<codec::EntityType> = Vec::new();
+            let mut line = |ax: f64, ay: f64, bx: f64, by: f64| {
+                let mut entity = codec::entities::Line::from_points(
+                    codec::types::Vector3::new(ax, ay, 0.0),
+                    codec::types::Vector3::new(bx, by, 0.0),
+                );
+                entity.common.layer = "ELEC-SYMBOLS".to_string();
+                entities.push(codec::EntityType::Line(entity));
+            };
+            let top = points as f64 * spacing;
+            line(0.0, 0.0, width, 0.0);
+            line(width, 0.0, width, top);
+            line(width, top, 0.0, top);
+            line(0.0, top, 0.0, 0.0);
+            for point in 0..points {
+                let y = (point as f64 + 0.5) * spacing;
+                line(-0.15, y, 0.0, y);
+                line(width, y, width + 0.15, y);
+            }
+            if let Err(error) = self.tabs[i].scene.define_block_from_owned_entities(
+                entities,
+                &block_name,
+                glam::DVec3::ZERO,
+            ) {
+                let message = format!("ELECPLC: cannot build {block_name}: {error}");
+                self.command_line.push_output(&message);
+                return Task::none();
+            }
+        }
+
+        let spacing = 0.25_f64;
+        let mut insert = codec::entities::Insert::new(
+            block_name.clone(),
+            codec::types::Vector3::new(x, y, 0.0),
+        );
+        let mut push = |insert: &mut codec::entities::Insert, name: &str, value: &str, row: usize| {
+            let mut attribute =
+                codec::entities::AttributeEntity::new(name.to_string(), value.to_string());
+            attribute.height = 0.1;
+            attribute.insertion_point = codec::types::Vector3::new(
+                x + 0.9,
+                y + (row as f64 + 1.0) * spacing,
+                0.0,
+            );
+            attribute.alignment_point = attribute.insertion_point;
+            insert.attributes.push(attribute);
+        };
+        push(&mut insert, "TAG1", tag, 0);
+        push(&mut insert, "DESC1", "PLC module", 1);
+        for (point, address) in addresses.iter().enumerate() {
+            push(&mut insert, &format!("ADDR{:02}", point + 1), address, point + 2);
+        }
+
+        self.push_undo_snapshot(i, "ELECPLC");
+        self.tabs[i]
+            .scene
+            .add_entity(codec::EntityType::Insert(insert));
+        self.tabs[i].dirty = true;
+
+        let summary = format!(
+            "ELECPLC: {tag} with {points} point(s), {}..{} at {x:.2},{y:.2}.",
+            addresses.first().cloned().unwrap_or_default(),
+            addresses.last().cloned().unwrap_or_default()
+        );
+        self.command_line.push_output(&summary);
+        Task::none()
+    }
+
+    /// Addresses for `points` consecutive I/O points from a base like `I0.0`.
+    ///
+    /// The convention both products use groups eight points per byte: `I0.0`-`I0.7`, then
+    /// `I1.0`. Returns `None` when the base does not look like an address.
+    fn plc_addresses(base: &str, points: usize) -> Option<Vec<String>> {
+        let base = base.trim();
+        let split = base.rfind('.')?;
+        let (head, last) = base.split_at(split);
+        let last = &last[1..];
+        if last.is_empty() || !last.chars().all(|c| c.is_ascii_digit()) {
+            return None;
+        }
+        let bit_start: usize = last.parse().ok()?;
+        if bit_start > 7 {
+            return None;
+        }
+        // `I0` or `I0.` prefix stays; only the byte number changes on overflow.
+        let byte_start: usize = head
+            .chars()
+            .rev()
+            .take_while(|c| c.is_ascii_digit())
+            .collect::<String>()
+            .chars()
+            .rev()
+            .collect::<String>()
+            .parse()
+            .ok()?;
+        let byte_prefix_len = head.len()
+            - head
+                .chars()
+                .rev()
+                .take_while(|c| c.is_ascii_digit())
+                .count();
+        let prefix = &head[..byte_prefix_len];
+
+        let mut out = Vec::with_capacity(points);
+        let mut bit = bit_start;
+        let mut byte = byte_start;
+        for _ in 0..points {
+            out.push(format!("{prefix}{byte}.{bit}"));
+            bit += 1;
+            if bit > 7 {
+                bit = 0;
+                byte += 1;
+            }
+        }
+        Some(out)
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -2855,6 +3013,24 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 }
                 if cmd == "ELECNEW" {
                     return Some(self.elec_new(i, None));
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPLC ") {
+                    // ELECPLC <tag> <points> <base-address> [x,y]
+                    let mut words = argument.split_whitespace();
+                    let tag = words.next().unwrap_or("");
+                    let points = words
+                        .next()
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .unwrap_or(0);
+                    let base = words.next().unwrap_or("");
+                    let at = words.next().and_then(|text| {
+                        let (x, y) = text.split_once(',')?;
+                        Some((
+                            x.trim().parse::<f64>().ok()?,
+                            y.trim().parse::<f64>().ok()?,
+                        ))
+                    });
+                    return Some(self.elec_plc(i, tag, points, base, at));
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECPROJECT ") {
                     // `ELECPROJECT <folder> [out.xlsx]`: the optional path writes the
