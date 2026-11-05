@@ -1,4 +1,4 @@
-use super::super::{Message, OpenCADStudio};
+﻿use super::super::{Message, OpenCADStudio};
 use crate::t;
 use iced::widget::{button, column, container, row, text, Space};
 use iced::{Background, Element, Fill, Fit, Theme};
@@ -26,6 +26,7 @@ impl OpenCADStudio {
             Some(K::Options) => crate::tr!("action", "options"),
             Some(K::FindReplace) => crate::tr!("modal", "find-replace"),
             Some(K::Overkill) => crate::t!("Delete Duplicate Objects").into_owned(),
+            Some(K::ElectricalLibrary) => crate::t!("Electrical Library").into_owned(),
             Some(K::PluginManager) => crate::tr!("modal", "plugin-manager"),
             Some(K::UpdateNotice) => crate::tr!("modal", "update-available"),
             Some(K::DonationPrompt) => crate::tr!("donation", "title"),
@@ -46,7 +47,7 @@ impl OpenCADStudio {
             Some(K::PointCloudColorMap) => crate::t!("Point Cloud Color Map").into_owned(),
             Some(K::PcSection) => crate::t!("Extract Section Lines from Point Cloud").into_owned(),
             Some(K::ViewBackground) => format!(
-                "{} — {}",
+                "{} Ã¢â‚¬â€ {}",
                 crate::tr!("view-background", "title"),
                 self.view_background
                     .as_ref()
@@ -242,7 +243,7 @@ impl OpenCADStudio {
                             ucs_icon_at_origin: self.ucs_icon_at_origin,
                             right_click_mode: self.right_click_mode,
                             right_click_hold_ms: self.right_click_hold_ms,
-                            // Quad display options (docs/quad-menu.md §3.7);
+                            // Quad display options (docs/quad-menu.md Ã‚Â§3.7);
                             // wired in update/context_menu.rs.
                             quad_on: self.quad,
                             quad_on_hover: self.quad_on_hover,
@@ -714,6 +715,12 @@ impl OpenCADStudio {
             super::super::ModalKind::CountInvalidArea => sized_flow(ex, 520, 260, |flow| {
                 crate::ui::window::count_palette::invalid_area_view(&self.count_palette, flow)
             }),
+            super::super::ModalKind::ElectricalLibrary => {
+                let symbols = self.elec_library_symbols();
+                sized_flow(ex, 520, 620, |sizing| {
+                    crate::ui::window::elec_library::view(&symbols, sizing)
+                })
+            }
             super::super::ModalKind::AttMan => {
                 let state = self.attman.as_ref()?;
                 sized_flow(ex, 880, 660, |flow| {
@@ -767,7 +774,7 @@ impl OpenCADStudio {
                     linetypes.sort_by_key(|name| name.to_lowercase());
                     // Shared ownership: the build closure runs twice per frame
                     // (INTRINSIC + FILL) and each row keeps its own copy, so a
-                    // borrow cannot work here — an Arc clone per row is a
+                    // borrow cannot work here Ã¢â‚¬â€ an Arc clone per row is a
                     // refcount bump instead of N string clones (#21, cf. #34).
                     let linetypes = std::sync::Arc::<[String]>::from(linetypes);
                     sized_flow(ex, 1180, 560, {
@@ -864,7 +871,7 @@ impl OpenCADStudio {
                         codec::EntityType::MultiLeader(_) => "MULTILEADER",
                         _ => "OBJECT",
                     })
-                    .unwrap_or("—");
+                    .unwrap_or("Ã¢â‚¬â€");
                 let scales: Vec<(String, String, bool)> = tab
                     .scene
                     .scale_list()
@@ -1521,7 +1528,7 @@ impl OpenCADStudio {
                         .iter()
                         .map(String::as_str),
                 );
-                // User Arrow… offers the drawing's own blocks on demand.
+                // User ArrowÃ¢â‚¬Â¦ offers the drawing's own blocks on demand.
                 let mut block_opts = block_opts;
                 block_opts.push(crate::tr!("dimstyle", "user-arrow"));
                 let user_arrow_blocks: Vec<String> = doc
@@ -2056,7 +2063,7 @@ impl OpenCADStudio {
     }
 
     fn shortcuts_modal_content<'s>(&'s self, ex: iced::Vector) -> Element<'s, Message> {
-        // Keys claimed by two rows — the cells turn red and a persistent
+        // Keys claimed by two rows Ã¢â‚¬â€ the cells turn red and a persistent
         // warning names the command already using each key.
         let (duplicate_set, duplicate_conflicts) = duplicate_rows(
             &self.shortcut_editor_rows,
@@ -2105,7 +2112,7 @@ impl OpenCADStudio {
     }
 
     fn aliases_modal_content<'s>(&'s self, ex: iced::Vector) -> Element<'s, Message> {
-        // Aliases claimed by two rows — the cells turn red and a persistent
+        // Aliases claimed by two rows Ã¢â‚¬â€ the cells turn red and a persistent
         // warning names the command already using each alias.
         let (duplicate_set, duplicate_conflicts) = duplicate_rows(
             &self.alias_editor_rows,
@@ -2617,7 +2624,7 @@ fn conversion_loss_dialog_window<'a>(
     });
     for loss in losses {
         lines = lines.push(
-            text(format!("• {loss}"))
+            text(format!("Ã¢â‚¬Â¢ {loss}"))
                 .size(12)
                 .wrapping(iced::widget::text::Wrapping::WordOrGlyph),
         );
@@ -2752,8 +2759,8 @@ fn layer_delete_warning_window(
 }
 
 /// What the graphics verdict means and what usually fixes it. Two
-/// situations share the dialog — a software rasterizer (slow, but drawing)
-/// and no renderer at all (a blank viewport) — and the remedy hint is per
+/// situations share the dialog Ã¢â‚¬â€ a software rasterizer (slow, but drawing)
+/// and no renderer at all (a blank viewport) Ã¢â‚¬â€ and the remedy hint is per
 /// platform. "OK" closes it for this session; the status-bar pill brings it
 /// back. "Don't show again" silences this verdict only, so a different
 /// failure on the same machine still prompts.
@@ -2867,3 +2874,5 @@ fn default_assoc_dialog_window(sizing: crate::ui::modal::ModalSizing) -> Element
     .padding([24, 28])
     .into()
 }
+
+

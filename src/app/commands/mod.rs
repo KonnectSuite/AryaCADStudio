@@ -1,4 +1,4 @@
-use super::{Message, OpenCADStudio};
+﻿use super::{Message, OpenCADStudio};
 use crate::command::CadCommand;
 use iced::Task;
 use std::path::PathBuf;
@@ -26,6 +26,7 @@ pub(crate) mod extraction_eval;
 mod mleader_layer;
 pub(crate) mod display;
 mod draw;
+mod elec;
 mod field;
 mod fileops;
 mod hyperlink;
@@ -65,7 +66,7 @@ mod xref_attach;
 pub(crate) use view::DrawOrderCommand;
 
 impl OpenCADStudio {
-    /// First `"{prefix}{n}"` (n ≥ 1) not already used by a block record in the
+    /// First `"{prefix}{n}"` (n â‰¥ 1) not already used by a block record in the
     /// active drawing. Used to auto-name a paste-as-block definition.
     pub(super) fn unique_block_name(&self, prefix: &str) -> String {
         let i = self.active_tab;
@@ -85,7 +86,7 @@ impl OpenCADStudio {
         }
     }
 
-    /// Per-command start state every new command begins from — also used by
+    /// Per-command start state every new command begins from â€” also used by
     /// entry points that install a command without going through dispatch
     /// (the block palette), so they don't inherit the previous command's last
     /// point, snaps or dynamic-input values. (#1525)
@@ -114,7 +115,7 @@ impl OpenCADStudio {
             .borrow_mut()
             .input
             .right_click_entered = false;
-        // A fresh command starts at the polar/cartesian default — clear
+        // A fresh command starts at the polar/cartesian default â€” clear
         // any `,`-driven reshape and locked dynamic-input values from a
         // previous command. Otherwise a bare Enter on the first point prompt
         // can commit that stale coordinate instead of accepting the command's
@@ -164,7 +165,7 @@ impl OpenCADStudio {
 
     /// Turn the ribbon highlight off when the command just dispatched left
     /// nothing running: no interactive command, dialog or navigation mode.
-    /// One-shot commands (view changes, clipboard, toggles, audits…) would
+    /// One-shot commands (view changes, clipboard, toggles, auditsâ€¦) would
     /// otherwise leave it lit forever; interactive commands and dialog owners
     /// keep theirs until the command end / modal close clears it. (#355)
     pub(in crate::app) fn clear_idle_tool_highlight(&mut self) {
@@ -181,10 +182,10 @@ impl OpenCADStudio {
 
     /// Dispatch a verb typed at the interactive command line, falling back to
     /// the closest autocomplete suggestion when the verb matches no command
-    /// family. Lets a partial command run on Enter (`BAC` → `BACKGROUND`),
+    /// family. Lets a partial command run on Enter (`BAC` â†’ `BACKGROUND`),
     /// the standard DWG command-line behavior. The fallback only fires for
     /// genuinely unknown verbs, so complete aliases that resolve through a
-    /// dispatch family (`LT`, `ZO`, …) still run as typed. Programmatic
+    /// dispatch family (`LT`, `ZO`, â€¦) still run as typed. Programmatic
     /// callers (ribbon, plugins, headless automation) use `dispatch_command`
     /// and never get silent substitution.
     pub(super) fn dispatch_command_or_suggest(&mut self, cmd: &str) -> Task<Message> {
@@ -205,14 +206,14 @@ impl OpenCADStudio {
     /// API v15: run a picked quad item's `quadplugin:` action host-side. The
     /// pick router (`on_quad_pick`) routes the scheme here INSTEAD of the
     /// generic dispatcher: plugin quad actions are impossible by typed /
-    /// automation / script input — `try_dispatch_command` answers
-    /// `quadplugin:` with the ordinary unknown-command path — so this method
+    /// automation / script input â€” `try_dispatch_command` answers
+    /// `quadplugin:` with the ordinary unknown-command path â€” so this method
     /// is the only door to the pick surface. The triple resolves against the
     /// quad store (`QuadStore::resolve`, no visibility filtering; the
     /// liveness guard below is the pick path's own):
     ///
     /// - `Command(verb)` dispatches the verb exactly like a plain quad item
-    ///   (the `Message::Command` path) — the review's dead-tile fix.
+    ///   (the `Message::Command` path) â€” the review's dead-tile fix.
     /// - `Callback` publishes the owner-targeted `QuadAction` notification.
     /// - A stale/invisible triple answers like any unknown command.
     #[cfg(not(target_arch = "wasm32"))]
@@ -259,8 +260,8 @@ impl OpenCADStudio {
                     .collect();
                 // `pick_point` is context-only: the quad's hover anchor is a
                 // screen position, not a world point, and no world
-                // reconstruction is trivially available on this path — the
-                // host-supplied zero is the honest placeholder (§4).
+                // reconstruction is trivially available on this path â€” the
+                // host-supplied zero is the honest placeholder (Â§4).
                 crate::plugin::v4_support::publish_quad_action(
                     &plugin_id,
                     &panel_id,
@@ -276,7 +277,7 @@ impl OpenCADStudio {
     }
 
     /// The wasm twin: no plugin surface exists, so no `quadplugin:` item can
-    /// be built — a stray one answers like any unknown command.
+    /// be built â€” a stray one answers like any unknown command.
     #[cfg(target_arch = "wasm32")]
     pub(crate) fn quad_plugin_action(&mut self, cmd: &str) -> Task<Message> {
         self.command_line
@@ -293,7 +294,7 @@ impl OpenCADStudio {
         allow_suggest: bool,
     ) -> Option<Task<Message>> {
         let i = self.active_tab;
-        // Expand a command alias ("L" → "LINE") on the leading token before any
+        // Expand a command alias ("L" â†’ "LINE") on the leading token before any
         // routing, so every path below (Start-tab gate, plugins, all dispatch
         // families, the Repeat menu) sees the canonical command. Arguments after
         // the first space are left untouched. A non-alias passes through as-is.
@@ -488,7 +489,7 @@ impl OpenCADStudio {
                 self.tabs[i].scene.clear_preview_wire();
             }
             let task = self.dispatch_families(cmd, i).unwrap_or_else(Task::none);
-            // A one-shot zoom is over already — resume straight away.
+            // A one-shot zoom is over already â€” resume straight away.
             self.resume_transparent_parent(i);
             return Some(task);
         }
@@ -541,7 +542,7 @@ impl OpenCADStudio {
         // user otherwise instead of running a no-op. See #96.
         // Anything that acts on the application rather than a drawing belongs
         // here: document lifecycle, the links, and the app-wide configuration
-        // editors (shortcuts, aliases) — none of them read the scene. This is
+        // editors (shortcuts, aliases) â€” none of them read the scene. This is
         // the single place that decides; `on_ribbon_tool_click` defers to it
         // rather than keeping a second, blunter copy (#388, #389).
         if self.tabs[i].is_start && !start_allowed(strip_command_prefixes(cmd).unwrap_or(cmd)) {
@@ -561,7 +562,7 @@ impl OpenCADStudio {
         if !self.suppress_plugin_dispatch && crate::plugin::try_dispatch(self, i, cmd) {
             // try_dispatch returns true for both finished commands and interactive
             // commands that it just installed. If no command is now active, the
-            // tool was a one-shot and we must turn the ribbon highlight off here —
+            // tool was a one-shot and we must turn the ribbon highlight off here â€”
             // normally apply_cmd_result does that, but plugin dispatch can return
             // without producing a CmdResult.
             self.tabs[i].last_cmd = Some(cmd.to_string());
@@ -616,7 +617,7 @@ impl OpenCADStudio {
         // Command families are dispatched in source order (see
         // `dispatch_families`); the first whose `match` arm matches handles it.
         if let Some(t) = self.dispatch_families(cmd, i) {
-            // A command resolved — record it for the right-click Repeat menu so
+            // A command resolved â€” record it for the right-click Repeat menu so
             // commands from every source (command line, ribbon, context menu,
             // shortcuts) appear there, not only typed ones. Recorded after
             // resolution so a partial verb completed via the suggestion
@@ -636,7 +637,7 @@ impl OpenCADStudio {
 
         // No family matched. From the interactive command line, run the
         // closest autocomplete suggestion instead of erroring, so a partial
-        // command completes on Enter (`BAC` → `BACKGROUND`). The verb's own
+        // command completes on Enter (`BAC` â†’ `BACKGROUND`). The verb's own
         // input was already cleared, so rank against `cmd` directly.
         if allow_suggest {
             if let Some(top) = crate::ui::command_line::ranked_matches(
@@ -658,7 +659,7 @@ impl OpenCADStudio {
     /// Try each command family in source order, returning the first that
     /// handles `cmd`, or `None` when none match. Each family returns
     /// `Some(task)` for an arm it owns (early-returning or falling through to
-    /// `finish_dispatch`), or `None` to defer to the next — equivalent to one
+    /// `finish_dispatch`), or `None` to defer to the next â€” equivalent to one
     /// sequential `match` over all arms.
     fn dispatch_families(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
         if let Some(t) = self.dispatch_text_layer(cmd, i) {
@@ -754,6 +755,9 @@ impl OpenCADStudio {
         if let Some(t) = self.dispatch_draw(cmd, i) {
             return Some(t);
         }
+        if let Some(t) = self.dispatch_elec(cmd, i) {
+            return Some(t);
+        }
         if let Some(t) = self.dispatch_dim(cmd, i) {
             return Some(t);
         }
@@ -803,12 +807,12 @@ impl OpenCADStudio {
 /// Commands that toggle a drafting aid and nothing else.
 ///
 /// They are reachable from a function key, and a function key gets pressed
-/// mid-command — that is the point of it. Running them through the ordinary
+/// mid-command â€” that is the point of it. Running them through the ordinary
 /// path cancelled the active command, cleared its preview and dropped its base
 /// point, so F8 during a MOVE both ended the move and made the dragged ghost
 /// vanish. Nothing here starts a command, opens a document or reads geometry,
 /// so there is nothing for the teardown to protect. (#677)
-/// Commands that may run transparently (`'PAN`, `'ZOOM …`): the navigation
+/// Commands that may run transparently (`'PAN`, `'ZOOM â€¦`): the navigation
 /// set, which never edits the drawing.
 fn is_transparent_capable(cmd: &str) -> bool {
     cmd == "PAN"
@@ -859,7 +863,7 @@ fn is_spacemouse_command(cmd: &str) -> bool {
     )
 }
 
-/// Whether `cmd` makes sense on the Start (welcome) tab — document lifecycle,
+/// Whether `cmd` makes sense on the Start (welcome) tab â€” document lifecycle,
 /// links, and app-wide configuration; nothing that reads the scene. Single
 /// source of truth: the dispatch gate refuses everything else, and the ribbon
 /// dims the tools this rejects.
@@ -897,9 +901,9 @@ pub fn start_allowed(cmd: &str) -> bool {
         )
 }
 
-// ── Autocomplete registry — one-shot commands ──────────────────────────────
+// â”€â”€ Autocomplete registry â€” one-shot commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // These commands dispatch a single action (file ops, view, layer/style
-// managers, undo/redo, …) rather than installing an interactive `CadCommand`,
+// managers, undo/redo, â€¦) rather than installing an interactive `CadCommand`,
 // so they have no module of their own to register from. They are surfaced for
 // command-line autocomplete here. Internal dispatch tokens that the user never
 // types (REFEDIT_BEGIN, REFCLOSE_SAVE, REFCLOSE_DISCARD) are intentionally
@@ -1117,7 +1121,7 @@ inventory::submit!(crate::command::CommandRegistration {
         "SHORTCUTMENU",
         "SHORTCUTMENUDURATION",
         // Quad cursor menu (F12 / status-bar QUAD field, docs/quad-menu.md
-        // §3.7): the sysvars reflect the three persisted quad settings.
+        // Â§3.7): the sysvars reflect the three persisted quad settings.
         "QUAD",
         "QUADWIDTH",
         "QUADCOMMANDLAUNCH",
@@ -1284,6 +1288,29 @@ inventory::submit!(crate::command::CommandRegistration {
         "OVERKILL",
         "BASE",
         "AUDIT",
+        // Electrical (ECAD) layer.
+        "ELECBOM",
+        "ELECLIST",
+        "ELECNUMBER",
+        "ELECNUMBERPREVIEW",
+        "ELECWIRELIST",
+        "ELECWIRENUMBER",
+        "ELECTERMINALS",
+        "ELECSIDES",
+        "ELECXREF",
+        "ELECPART",
+        "ELECXREFWRITE",
+        "ELECREPORT",
+        "ELECINSERT",
+        "ELECPALETTE",
+        "ELECPLACE",
+        "ELECSETATTR",
+        "ELECNEW",
+        "ELECPROJECT",
+        "ELECWIRE",
+        "ELECMAKESYMBOL",
+        "ELECJUNCTIONS",
+        "ELECLIB",
         "SETVAR",
         "SCRIPT",
         "SCR",
@@ -1896,3 +1923,17 @@ mod ribbon_highlight_tests {
         assert_eq!(app.ribbon.active_tool(), None);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

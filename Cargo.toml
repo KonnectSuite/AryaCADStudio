@@ -1,4 +1,4 @@
-[package]
+﻿[package]
 name = "OpenCADStudio"
 version = "2026.44.0"
 edition = "2021"
@@ -8,6 +8,7 @@ autotests = false
 
 [workspace]
 members = [
+    "crates/elec",
     "crates/ocs_plugin_api",
     "crates/ocs_save",
     "crates/ocs_web_worker",
@@ -19,6 +20,7 @@ members = [
 winresource = "0.1"
 
 [dependencies]
+elec = { path = "crates/elec" }
 serde_json = "1"
 # Offline validation of the same contracts published to automation clients.
 jsonschema = { version = "0.49", default-features = false }
@@ -61,7 +63,7 @@ tiny-skia = "0.11"
 printpdf = { version = "0.9.1", default-features = false, features = ["images"] }
 # TrueType subsetting for searchable PDF text (same version printpdf itself
 # uses, so no new binary enters the lockfile). Same feature set as printpdf's
-# own allsorts use (pure-Rust flate backend) — the defaults would drag in the
+# own allsorts use (pure-Rust flate backend) â€” the defaults would drag in the
 # libz-sys C dependency. Pure Rust, so the web build embeds
 # the same subsets.
 allsorts = { version = "0.16", default-features = false, features = ["flate2_rust"] }
@@ -101,12 +103,12 @@ windows-sys = { version = "0.61", features = ["Win32_UI_Shell", "Win32_UI_Window
 ashpd = { version = "0.13.13", default-features = false, features = ["async-io", "settings", "wayland"] }
 
 # For `src/bin/ocs_launcher.rs` only (the .app's real CFBundleExecutable,
-# see that file for why) — already in the tree transitively via winit, pinned
+# see that file for why) â€” already in the tree transitively via winit, pinned
 # here to the same versions Cargo already resolves for it.
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"
 # The `NSEvent`/`block2` features are for the trackpad pinch monitor in
-# `src/input/trackpad.rs` — see that file for why the gesture is read there.
+# `src/input/trackpad.rs` â€” see that file for why the gesture is read there.
 objc2-app-kit = { version = "0.2", features = ["NSApplication", "NSFont", "NSResponder", "NSRunningApplication", "NSEvent", "block2"] }
 block2 = "0.5"
 objc2-foundation = { version = "0.2", features = ["NSArray", "NSURL", "NSString", "NSObject", "NSNotification", "NSThread", "NSEnumerator"] }
@@ -231,8 +233,11 @@ find-crate = { opt-level = 2 }
 "toml:0.5.11" = { opt-level = 2 }
 
 # meshopt's C++ build maps DEBUG=false to NDEBUG. Keep its C assertions.
+# NOTE: with the MSVC toolchain the C++ compiler fails to build this crate at
+# debug=1 (cl D8050 "cannot execute c1xx.dll"), which blocks every dev build.
+# Release remains the shipping profile; dev is for local iteration.
 [profile.dev.package.meshopt]
-debug = 1
+debug = 0
 
 [profile.test]
 debug = 0
@@ -363,3 +368,5 @@ harness = false
 [[test]]
 name = "integration"
 path = "tests/integration.rs"
+
+

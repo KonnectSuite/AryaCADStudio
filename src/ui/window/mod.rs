@@ -1,4 +1,4 @@
-pub mod about;
+﻿pub mod about;
 pub mod alias_editor;
 pub mod annotation_data;
 pub mod attdef_dialog;
@@ -20,6 +20,7 @@ pub mod block_lookup;
 pub mod block_properties_table;
 pub mod browser;
 pub mod count_palette;
+pub mod elec_library;
 pub mod drafting_settings;
 pub mod drawing_units;
 pub mod field_dialog;
@@ -66,3 +67,4 @@ pub mod xref_help;
 pub mod xref_manager;
 pub mod plugin_dialog;
 pub mod plugin_panel;
+

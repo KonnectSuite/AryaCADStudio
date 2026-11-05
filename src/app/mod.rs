@@ -1,4 +1,4 @@
-pub(crate) mod alias;
+﻿pub(crate) mod alias;
 mod automation;
 pub(crate) mod control;
 pub(crate) fn automation_action_names() -> &'static [&'static str] {
@@ -166,7 +166,7 @@ pub struct GripHover {
 /// move; `HoverDwellTick` runs the pick once `last_move_at.elapsed()`
 /// crosses `HOVER_DWELL_MS`. `point` and `tile_size` are tile-local so
 /// the deferred pick uses the same projection the move handler would
-/// have — picking with the full canvas bounds in a tiled layout matches
+/// have â€” picking with the full canvas bounds in a tiled layout matches
 /// the wrong entity under the cursor.
 #[derive(Clone, Debug)]
 pub struct HoverDwell {
@@ -178,9 +178,9 @@ pub struct HoverDwell {
 
 /// What the last executed settled-rollover pick saw, so a re-armed tick can
 /// tell that a repeat would run identically and skip the O(N) sweep
-/// (docs/quad-menu.md §3.4). `point` is tile-local like [`HoverDwell::point`];
-/// the move count disqualifies any cursor move since — including one away
-/// and back — and the epoch / generation / user-pref tokens disqualify a
+/// (docs/quad-menu.md Â§3.4). `point` is tile-local like [`HoverDwell::point`];
+/// the move count disqualifies any cursor move since â€” including one away
+/// and back â€” and the epoch / generation / user-pref tokens disqualify a
 /// scene, camera or pick-relevant preference change without a move.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QuadDwellPick {
@@ -270,7 +270,7 @@ pub struct GripPendingValue {
 /// property value and the user-typed test value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum QSelectOp {
-    /// `*Any value` — the entity matches as long as the type filter
+    /// `*Any value` â€” the entity matches as long as the type filter
     /// passes; the value column is ignored.
     Any,
     Eq,
@@ -325,7 +325,7 @@ impl std::fmt::Display for QSelectOp {
 }
 
 /// One row in the Quick Select Properties pick_list. `field` is the
-/// stable identifier (`"layer"`, `"start_x"`, …) used to look up the
+/// stable identifier (`"layer"`, `"start_x"`, â€¦) used to look up the
 /// value on each candidate entity; `label` is the human label rendered
 /// in the dropdown. Equality only compares `field` so the pick_list
 /// round-trips selection correctly even when labels are duplicated.
@@ -546,7 +546,7 @@ pub(super) const POLY_START_DELAY_MS: u128 = 250;
 pub(super) const DRAG_START_FAST_PX2: f32 = 144.0;
 pub(super) const VARIES_LABEL: &str = "*VARIES*";
 
-// ── File-open progress ─────────────────────────────────────────────────────
+// â”€â”€ File-open progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Phase encoding for OpenProgress.phase atomic. Updated from the background
 // loader thread, read by the UI overlay on every frame.
 pub const OPEN_PHASE_READING: u8 = 0;
@@ -573,7 +573,7 @@ pub struct OpenProgress {
     pub fingerprint: Option<crate::io::edit_lock::FileFingerprint>,
 }
 
-// ── Application state ──────────────────────────────────────────────────────
+// â”€â”€ Application state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// Drawing defaults ADDSELECTED overrides while it draws a new object matching a
 /// template, then restores so the current layer/colour/linetype/lineweight are
@@ -660,7 +660,7 @@ pub(super) struct OpenCADStudio {
     hovered_doc_tab: Option<usize>,
     tab_counter: usize,
     ribbon: Ribbon,
-    /// Recently opened files, newest first — backs the Start page panel.
+    /// Recently opened files, newest first â€” backs the Start page panel.
     recent_files: Vec<std::path::PathBuf>,
     /// Decoded DWG preview thumbnails for the Start page, keyed by path.
     /// `None` = the file has no readable preview (DXF, missing, WMF). Filled
@@ -680,7 +680,7 @@ pub(super) struct OpenCADStudio {
     /// Tutorial-playlist videos for the Start page: seeded from the on-disk
     /// cache at boot, refreshed by a live playlist fetch.
     videos: Vec<crate::videos::VideoEntry>,
-    /// Decoded thumbnail handles keyed by video id — built once per video when
+    /// Decoded thumbnail handles keyed by video id â€” built once per video when
     /// the list arrives, so the view never re-decodes JPEG bytes per frame.
     video_thumbs: std::collections::HashMap<String, iced::widget::image::Handle>,
     /// True while the boot-time playlist fetch is still in flight.
@@ -761,7 +761,7 @@ pub(super) struct OpenCADStudio {
     pick_add: bool,
     /// The Remove selection keyword: picks take objects out of the set instead
     /// of putting them in, until Add turns it off or the command ends. This is
-    /// what Shift already does per-click, not PICKADD — PICKADD decides whether
+    /// what Shift already does per-click, not PICKADD â€” PICKADD decides whether
     /// a pick *replaces* the set, so borrowing it here would wipe everything
     /// gathered so far rather than subtract one thing. (#596)
     select_remove_mode: bool,
@@ -867,7 +867,7 @@ pub(super) struct OpenCADStudio {
     statusbar_config: crate::ui::statusbar::statusbar_config::StatusBarConfig,
     /// Add selected scales to existing annotative objects.
     annotation_auto_scale: i8,
-    /// Last persisted user preferences (DYN/OSNAP/OTRACK/POLAR/…). Compared
+    /// Last persisted user preferences (DYN/OSNAP/OTRACK/POLAR/â€¦). Compared
     /// after each message so a change is written to disk exactly once.
     last_saved_config: Option<config::AppConfig>,
     /// Active OTRACK alignment `(tracking_point, unit_direction)` when the
@@ -885,11 +885,11 @@ pub(super) struct OpenCADStudio {
     pre_cmd_tangent: Option<bool>,
     /// Drawing defaults captured by ADDSELECTED before it adopts the template
     /// object's properties, restored when the launched draw command ends so
-    /// ADDSELECTED doesn't permanently change CLAYER / CECOLOR / … (issue #239).
+    /// ADDSELECTED doesn't permanently change CLAYER / CECOLOR / â€¦ (issue #239).
     add_selected_restore: Option<AddSelectedRestore>,
     /// Whether Ortho mode was temporarily suppressed by a command (e.g. RECTANG).
     rect_suppressed_ortho: bool,
-    /// Orthogonal drawing constraint (F8): constrains picks to 0°/90°/180°/270°.
+    /// Orthogonal drawing constraint (F8): constrains picks to 0Â°/90Â°/180Â°/270Â°.
     ortho_mode: bool,
     /// Polar tracking (F10): constrains picks to configurable angle increments.
     polar_mode: bool,
@@ -940,7 +940,7 @@ pub(super) struct OpenCADStudio {
     /// window reaches the rest.
     zoom_factor: i32,
     /// The Options field behind `zoom_factor`. A text field is edited as
-    /// text — cleared, half-typed — so the buffer is what the user sees and
+    /// text â€” cleared, half-typed â€” so the buffer is what the user sees and
     /// the value follows only once it parses.
     zoom_factor_input: String,
     /// Crosshair size setting (CURSORSIZE, 1..=100).
@@ -964,7 +964,7 @@ pub(super) struct OpenCADStudio {
     right_click_mode: settings::RightClickMode,
     /// Time-sensitive right-click hold threshold, ms (SHORTCUTMENUDURATION).
     right_click_hold_ms: i32,
-    // ── Quad cursor menu ───────────────────────────────────────────────────
+    // â”€â”€ Quad cursor menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // The persisted `UserSettings::quad*` fields are mirrored here like
     // `right_click_mode` above (startup restore + save-snapshot in
     // `update/file.rs` write both sides), so the update paths, the Options
@@ -988,7 +988,7 @@ pub(super) struct OpenCADStudio {
     /// Milliseconds the cursor must rest on an entity before the hover quad
     /// opens (0..=2000).
     quad_hover_delay_ms: u64,
-    /// The panels the open quad currently shows — the pure model built by
+    /// The panels the open quad currently shows â€” the pure model built by
     /// `quad_panels_for_target` when the quad opened. Cleared on close.
     pub quad_panels: Vec<crate::ui::popup::quad_menu::QuadPanel>,
     /// When the qualifying hover dwell began while the quad is closed
@@ -998,7 +998,7 @@ pub(super) struct OpenCADStudio {
     /// cursor point, the move sequence that had armed the dwell, and the
     /// cheap scene tokens the pick reads. While the quad dwell is counting
     /// and none of these changed, the dwell tick skips the O(N) pick and
-    /// only re-arms itself (docs/quad-menu.md §3.4).
+    /// only re-arms itself (docs/quad-menu.md Â§3.4).
     pub(crate) quad_dwell_pick: Option<QuadDwellPick>,
     /// Monotonic count of hover-dwell arming moves: any cursor move since
     /// the recorded pick (including moving away and back to the same
@@ -1006,7 +1006,7 @@ pub(super) struct OpenCADStudio {
     hover_move_seq: u64,
     /// Per-entity-type-key most-recently-used commands launched *from the
     /// quad* (and the global list for the No Selection quad). One shared
-    /// instance for every tab — the memory follows the user, not the file.
+    /// instance for every tab â€” the memory follows the user, not the file.
     pub quad_mru: crate::ui::popup::quad_menu::QuadMru,
     /// Target classification captured when the quad last opened. The pick
     /// routes hover-vs-selection dispatch semantics against it, so movement
@@ -1142,15 +1142,15 @@ pub(super) struct OpenCADStudio {
     default_bg_color: Option<[f32; 4]>,
     default_paper_bg_color: Option<[f32; 4]>,
     /// CLIPROMPTLINES: how many temporary prompt lines for a single command
-    /// are displayed above the command window (0–50, Registry, default 3).
+    /// are displayed above the command window (0â€“50, Registry, default 3).
     cliprompt_lines: i32,
-    /// COMMANDLINEFADETIME: overlay history visible time in ms (0–60000, default 3000).
+    /// COMMANDLINEFADETIME: overlay history visible time in ms (0â€“60000, default 3000).
     commandline_fade_ms: i32,
     /// MRU list of block names inserted via INSERT, most recent first, capped to 20.
     block_mru: Vec<String>,
-    /// Insertion frequency per block name (uppercase key → count), capped.
+    /// Insertion frequency per block name (uppercase key â†’ count), capped.
     block_freq: std::collections::HashMap<String, u32>,
-    /// BLOCKMRULIST: how many recent blocks the palette keeps (0–100).
+    /// BLOCKMRULIST: how many recent blocks the palette keeps (0â€“100).
     pub(crate) block_mru_list: u8,
     /// The selection the gathering command had after the last pick (keyed by
     /// the command), for the `N found, M total` line.
@@ -1163,23 +1163,23 @@ pub(super) struct OpenCADStudio {
     pub(crate) typed_window_corner: Option<(usize, glam::DVec3)>,
     /// The Edit Reference dialog's remembered settings.
     pub(crate) refedit_options: crate::app::settings::RefEditOptions,
-    /// BLOCKREDEFINEMODE (0–2).
+    /// BLOCKREDEFINEMODE (0â€“2).
     pub(crate) block_redefine_mode: u8,
     /// BLOCKNAVIGATE: the Libraries tab's start folder ("." for none).
     pub(crate) block_navigate: String,
     /// Last time block-usage was flushed to disk (debounce per 2.4).
     #[cfg(not(target_arch = "wasm32"))]
     block_usage_last_persist: Option<std::time::Instant>,
-    /// `true` after a bare `VPORTS` in model space — the next command-line
+    /// `true` after a bare `VPORTS` in model space â€” the next command-line
     /// entry is treated as the tiled-config option (SIngle/2H/2V/4).
     awaiting_vports: bool,
     /// Set to the variable name after a bare system-variable query (e.g. a lone
-    /// `MIRRTEXT`) — the next command-line entry is its new value, empty keeps
+    /// `MIRRTEXT`) â€” the next command-line entry is its new value, empty keeps
     /// the current one.
     pending_setvar: Option<String>,
-    /// DELOBJ system variable (0–3), shared by every open drawing.
+    /// DELOBJ system variable (0â€“3), shared by every open drawing.
     delete_objects: i16,
-    /// Cursor is hovering over the UCS icon body — drives the hover highlight.
+    /// Cursor is hovering over the UCS icon body â€” drives the hover highlight.
     ucs_icon_hover: bool,
     /// UCS icon is selected (clicked): its grips are shown and draggable.
     ucs_icon_selected: bool,
@@ -1211,7 +1211,7 @@ pub(super) struct OpenCADStudio {
     plugin_grip_hover: Option<crate::plugin::grip_points::PluginGripHover>,
     /// Delivery bookkeeping for the active custom-grip drag (API v12):
     /// every out-of-process phase is issued without waiting and collected
-    /// at pump ticks — the UI loop never blocks on plugin answers.
+    /// at pump ticks â€” the UI loop never blocks on plugin answers.
     #[cfg(not(target_arch = "wasm32"))]
     plugin_grip_deliveries: crate::plugin::grip_points::PluginGripDeliveries,
     /// The visual-only live-geometry phase of the active custom-grip drag
@@ -1299,7 +1299,7 @@ pub(super) struct OpenCADStudio {
     /// glyphs) instead of re-tessellating the run every cursor move (issue #316).
     grip_text_verts: Vec<crate::scene::pipeline::text_gpu::TextVertex>,
     /// True when the current grip drag is a rigid whole-entity move of pure text
-    /// (TEXT / MTEXT, no wire geometry, insertion grip) — the case where the
+    /// (TEXT / MTEXT, no wire geometry, insertion grip) â€” the case where the
     /// glyphs can just be slid. A reshape grip (e.g. an MTEXT width handle) or an
     /// entity with wires re-tessellates instead so the preview stays exact.
     grip_text_slide: bool,
@@ -1317,7 +1317,7 @@ pub(super) struct OpenCADStudio {
     show_viewcube: bool,
     /// Measured natural width (px, as `f32` bits) of the active viewport's
     /// render-mode control bar, written each frame by its `DensitySwap` and read
-    /// next frame to decide whether the ViewCube still has room beside it — so
+    /// next frame to decide whether the ViewCube still has room beside it â€” so
     /// the two corner widgets adapt to the bar's real width, not an estimate.
     render_bar_w: std::sync::Arc<std::sync::atomic::AtomicU32>,
     /// Whether the visual-style flyout beside the active viewport is open.
@@ -1405,7 +1405,7 @@ pub(super) struct OpenCADStudio {
     show_file_tabs: bool,
     /// Whether the layout/paper-space tabs are shown at the bottom (LAYOUTTAB).
     show_layout_tabs: bool,
-    /// Last point committed by a drawing command — used as ortho/polar base.
+    /// Last point committed by a drawing command â€” used as ortho/polar base.
     last_point: Option<glam::DVec3>,
     /// Viewport used by the current snap; the displayed point is in paper space.
     pub(crate) vp_snap_frame: Option<crate::scene::viewport_ref::ViewportFrame>,
@@ -1418,7 +1418,7 @@ pub(super) struct OpenCADStudio {
         Option<crate::scene::viewport_ref::ViewportFrame>,
     )>,
     /// Endpoint + unit exit-tangent of the most recently drawn line/arc, so
-    /// `ARC_CONT` (Arc → Continue) can start tangentially from where drawing
+    /// `ARC_CONT` (Arc â†’ Continue) can start tangentially from where drawing
     /// ended. `None` once a non-line/arc entity is committed.
     cont_anchor: Option<(glam::DVec3, glam::DVec3)>,
     /// OS window Id for the floating Layer Properties Manager (None when closed).
@@ -1442,7 +1442,7 @@ pub(super) struct OpenCADStudio {
     /// dropped instead of queued (the next interval retries).
     #[cfg(target_arch = "wasm32")]
     web_autosave_in_flight: bool,
-    /// Web autosave storage already reported a failure — stay quiet until a
+    /// Web autosave storage already reported a failure â€” stay quiet until a
     /// round succeeds again, so a full quota does not spam every tick.
     #[cfg(target_arch = "wasm32")]
     web_autosave_warned: bool,
@@ -1456,7 +1456,7 @@ pub(super) struct OpenCADStudio {
     /// this down; reaching zero arms `web_session_focus_pending`.
     #[cfg(target_arch = "wasm32")]
     web_autosave_restore_all_remaining: usize,
-    /// A Restore-all batch finished settling — apply the remembered
+    /// A Restore-all batch finished settling â€” apply the remembered
     /// session's active tab at the next message boundary, after the last
     /// restored open has actually inserted its tab (`web_autosave_opened`
     /// runs before that insertion, so applying there would pick against a
@@ -1465,13 +1465,13 @@ pub(super) struct OpenCADStudio {
     web_session_focus_pending: bool,
     /// The tab list the previous session remembered (localStorage), loaded
     /// after the boot autosave scan. Advisory only: it feeds the restore
-    /// modal's session line and the post-restore tab selection — nothing is
+    /// modal's session line and the post-restore tab selection â€” nothing is
     /// ever auto-opened from it.
     #[cfg(target_arch = "wasm32")]
     web_session: Option<crate::io::web_session::WebSession>,
     /// The snapshot whose recovered open is in flight: `(autosave key,
     /// open id)`. The OPFS copy is the only one, so it is deleted only
-    /// once the open with exactly that id succeeds — identity, never the
+    /// once the open with exactly that id succeeds â€” identity, never the
     /// display name (same-named files share one stored copy on web).
     #[cfg(target_arch = "wasm32")]
     web_autosave_consumed: Option<(String, u64)>,
@@ -1480,7 +1480,7 @@ pub(super) struct OpenCADStudio {
     /// with a fresh mtime); the removes run when the round finishes.
     #[cfg(target_arch = "wasm32")]
     web_autosave_clear_after: Vec<String>,
-    // ── Floating panel windows ────────────────────────────────────────────
+    // â”€â”€ Floating panel windows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// The open Select Color panel, if any.
     color_picker: Option<crate::ui::color_select::ColorPicker>,
     /// The built-in colour book and those in the colour book folder, read
@@ -1557,7 +1557,7 @@ pub(super) struct OpenCADStudio {
     modal_content_size: Option<iced::Size>,
     /// True while the modal's corner resize grip is held.
     modal_resizing: bool,
-    // ── Attribute editor dialog (ATTEDIT / double-click a block) ───────────
+    // â”€â”€ Attribute editor dialog (ATTEDIT / double-click a block) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// INSERT whose attributes the editor modal is editing (`None` = closed).
     attr_editor_handle: Option<codec::Handle>,
     /// Block name shown in the editor's title bar.
@@ -1587,7 +1587,7 @@ pub(super) struct OpenCADStudio {
     /// Plugin Manager opens.
     external_plugins: Vec<crate::plugin::external::ExternalPlugin>,
     /// Ids of external packages actually loaded this session (a subset of
-    /// `external_plugins` — compatible, with a library, dlopen'd at startup).
+    /// `external_plugins` â€” compatible, with a library, dlopen'd at startup).
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     loaded_plugin_ids: rustc_hash::FxHashSet<String>,
     /// Startup load failures keyed by plugin id. The Plugin Manager uses these
@@ -1667,14 +1667,14 @@ pub(super) struct OpenCADStudio {
     clipboard_base: glam::DVec3,
     /// Table records (layer / linetype / text + dim style) the clipboard
     /// entities reference, captured from the source drawing at copy time so a
-    /// paste into a *different* drawing can recreate any that are missing —
+    /// paste into a *different* drawing can recreate any that are missing â€”
     /// otherwise the pasted entities would dangle on a non-existent layer.
     clipboard_deps: ClipboardDeps,
-    /// True while the Shift key is held — drives subtractive pick (Shift+click
+    /// True while the Shift key is held â€” drives subtractive pick (Shift+click
     /// removes the picked entity from the selection). Tracked from keyboard
     /// modifier-change events since mouse click messages carry no modifiers.
     shift_down: bool,
-    /// True while Ctrl/Cmd is held — drives Ctrl-click multi-select in the
+    /// True while Ctrl/Cmd is held â€” drives Ctrl-click multi-select in the
     /// Layer Manager. Tracked from modifier-change events.
     ctrl_down: bool,
     /// Open in-place MText editor (toolbar + text area + live preview), if any.
@@ -1688,8 +1688,8 @@ pub(super) struct OpenCADStudio {
     /// point it opened at, or `None` when closed (#337).
     snap_override_popup: Option<iced::Point>,
     /// Hard axis lock (#312): the WCS direction captured when Shift went down
-    /// during a rubber-band point pick. While `Some`, every candidate point —
-    /// osnap hits included — projects onto this ray from `last_point` (or the
+    /// during a rubber-band point pick. While `Some`, every candidate point â€”
+    /// osnap hits included â€” projects onto this ray from `last_point` (or the
     /// grip origin). Cleared when Shift releases.
     axis_lock_dir: Option<glam::DVec3>,
     /// A direction typed as `<angle` at a point prompt: the next point stays
@@ -1750,14 +1750,14 @@ pub(super) struct OpenCADStudio {
     print_all_plot_window_prev: Option<Option<(f64, f64, f64, f64)>>,
     print_all_plot_setup_prev: Option<Option<codec::objects::PlotSettings>>,
 
-    // ── Plot Style Table ──────────────────────────────────────────────────
+    // â”€â”€ Plot Style Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Currently loaded CTB/STB table (None = no override).
     active_plot_style: Option<crate::io::plot_style::PlotStyleTable>,
     /// Table state at Plot Style editor open / last save. Edits preview live,
     /// but closing the editor restores this baseline until Save succeeds.
     pub(super) plotstyle_panel_baseline: Option<Option<crate::io::plot_style::PlotStyleTable>>,
 
-    // ── MLineStyle Dialog ─────────────────────────────────────────────────
+    // â”€â”€ MLineStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     mlstyle_selected: String,
     mlstyle_tab: u8,
     mlstyle_compare: String,
@@ -1767,7 +1767,7 @@ pub(super) struct OpenCADStudio {
     mln_fill_color: String,
     mln_elements: Vec<[String; 3]>,
 
-    // ── MLeaderStyle Dialog ───────────────────────────────────────────────
+    // â”€â”€ MLeaderStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     mleaderstyle_selected: String,
     mleaderstyle_tab: u8,
     mleaderstyle_compare: String,
@@ -1793,7 +1793,7 @@ pub(super) struct OpenCADStudio {
     mls_block_scale_y: String,
     mls_block_scale_z: String,
 
-    // ── TableStyle Dialog ─────────────────────────────────────────────────
+    // â”€â”€ TableStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     tablestyle_selected: String,
     tablestyle_tab: u8,
     tablestyle_compare: String,
@@ -1817,7 +1817,7 @@ pub(super) struct OpenCADStudio {
     /// open.
     ts_color_open: Option<&'static str>,
 
-    // ── Shared style-manager inline rename ────────────────────────────────
+    // â”€â”€ Shared style-manager inline rename â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Original name of the style currently being renamed inline (double-click
     /// a style name in any style manager). `None` when not renaming.
     style_rename: Option<String>,
@@ -1831,7 +1831,7 @@ pub(super) struct OpenCADStudio {
     style_stage: Option<style_ops::StyleStage>,
     style_import: Option<update::style_import::StyleImportDraft>,
 
-    // ── TextStyle Font Browser ────────────────────────────────────────────
+    // â”€â”€ TextStyle Font Browser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     textstyle_selected: String,
     /// How many texts use each text style (ASCII-lowercase name), counted
     /// with the selected style's texts.
@@ -1850,7 +1850,7 @@ pub(super) struct OpenCADStudio {
     /// manager is open; Apply walks the drawing again.
     textstyle_users: rustc_hash::FxHashMap<String, Vec<text_style_users::TextUser>>,
 
-    // ── Color Scheme ──────────────────────────────────────────────────────
+    // â”€â”€ Color Scheme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     active_theme: Theme,
     ui_theme: config::UiThemeConfig,
     theme_color_inputs: [String; 6],
@@ -1860,8 +1860,8 @@ pub(super) struct OpenCADStudio {
     desk_bg_input: String,
     pub(crate) saved_custom_palette: Option<config::UiThemePalette>,
 
-    // ── Keyboard Shortcut Editor ──────────────────────────────────────────
-    /// Complete editable key → command/action table.
+    // â”€â”€ Keyboard Shortcut Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// Complete editable key â†’ command/action table.
     shortcut_bindings: rustc_hash::FxHashMap<String, String>,
     /// Working rows shown by the shortcut editor until Apply is pressed.
     shortcut_editor_rows: Vec<(String, String)>,
@@ -1872,7 +1872,7 @@ pub(super) struct OpenCADStudio {
     shortcut_capture_row: Option<usize>,
     /// True while a freshly added (top) row is an unfinished draft: it exists
     /// only until its key and command are filled (success) or it is cancelled
-    /// (Esc / ✕ / dialog close), so the list never keeps an empty row.
+    /// (Esc / âœ• / dialog close), so the list never keeps an empty row.
     shortcut_pending_add: bool,
     /// True while the "Reset to default" confirmation is showing.
     shortcut_reset_confirm: bool,
@@ -1880,9 +1880,9 @@ pub(super) struct OpenCADStudio {
     /// overlays the editor: the user tried to close with un-applied rows.
     shortcut_close_confirm: bool,
 
-    // ── Command Aliases ───────────────────────────────────────────────────
-    /// Command-line aliases: uppercase abbreviation → uppercase command
-    /// ("L" → "LINE"). Loaded from `ocad.pgp` at boot and consulted before
+    // â”€â”€ Command Aliases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// Command-line aliases: uppercase abbreviation â†’ uppercase command
+    /// ("L" â†’ "LINE"). Loaded from `ocad.pgp` at boot and consulted before
     /// every dispatch (`resolve_alias`); user-editable via ALIASEDIT. See
     /// [`alias`].
     command_aliases: rustc_hash::FxHashMap<String, String>,
@@ -1891,7 +1891,7 @@ pub(super) struct OpenCADStudio {
     alias_editor_rows: Vec<(String, String)>,
     /// True while a freshly added (top) row is an unfinished draft: it exists
     /// only until its alias and command are filled (accept) or it is cancelled
-    /// (Esc / ✕ / dialog close), so the list never keeps an empty row.
+    /// (Esc / âœ• / dialog close), so the list never keeps an empty row.
     /// Mirrors `shortcut_pending_add`.
     alias_pending_add: bool,
     /// True while the "Reset to default" confirmation is showing.
@@ -1902,24 +1902,24 @@ pub(super) struct OpenCADStudio {
     /// Summary of the most recent PGP import; never activates the working rows.
     alias_import_report: String,
 
-    // ── Named Parameters ──────────────────────────────────────────────────
+    // â”€â”€ Named Parameters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Working buffer for the PARAMETERS modal. Unlike `alias_editor_rows`,
-    /// this isn't a copy of a separate app-level store — the real state
+    /// this isn't a copy of a separate app-level store â€” the real state
     /// lives per-document at `Scene::named_parameters`; this buffer is
     /// seeded from the active tab's table on open and only written back to
     /// it on Apply (`apply_named_parameter_editor_rows`,
     /// `src/app/named_parameters.rs`).
     named_parameter_editor_rows: Vec<crate::ui::window::named_parameters::ParamEditorRow>,
 
-    // ── CAL ───────────────────────────────────────────────────────────────
+    // â”€â”€ CAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Variables and `ans` kept between CAL evaluations for this session.
     cal_context: calc::CalcContext,
 
-    // ── Layout Manager Panel ──────────────────────────────────────────────
+    // â”€â”€ Layout Manager Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     layout_manager_selected: String,
     layout_manager_rename_buf: String,
 
-    // ── Layer State Manager ───────────────────────────────────────────────
+    // â”€â”€ Layer State Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     layer_state_selected: Option<String>,
     layer_state_name_buf: String,
     layer_state_description_buf: String,
@@ -1928,7 +1928,7 @@ pub(super) struct OpenCADStudio {
     layer_state_edit_filter: String,
     layer_state_edit_color_open: Option<usize>,
 
-    // ── Annotation-scale Manager ──────────────────────────────────────────
+    // â”€â”€ Annotation-scale Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     scale_manager_selected: String,
     scale_manager_paper_buf: String,
     scale_manager_drawing_buf: String,
@@ -1938,11 +1938,11 @@ pub(super) struct OpenCADStudio {
     /// The entity the Annotation Object Scale dialog is editing (its per-object
     /// annotation-scale membership).
     anno_object_scale_target: Option<codec::types::Handle>,
-    /// Open transaction for the scale manager — restored if the window closes
+    /// Open transaction for the scale manager â€” restored if the window closes
     /// without Apply, mirroring the style managers' staging.
     scale_stage: Option<crate::app::style_ops::ScaleStage>,
 
-    // ── Annotation table/data dialogs ────────────────────────────────────
+    // â”€â”€ Annotation table/data dialogs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     table_insert: crate::ui::window::annotation_data::TableInsertState,
     data_link_manager: crate::ui::window::annotation_data::DataLinkManagerState,
     data_link_parent_table: bool,
@@ -1952,7 +1952,7 @@ pub(super) struct OpenCADStudio {
     tablestyle_in_use_only: bool,
     data_extraction: crate::ui::window::annotation_data::DataExtractionState,
 
-    // ── Plot Style Panel ──────────────────────────────────────────────────
+    // â”€â”€ Plot Style Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Selected ACI index in the panel (1-255).
     plotstyle_panel_aci: u8,
     /// Edit buffers for the selected entry.
@@ -1960,8 +1960,8 @@ pub(super) struct OpenCADStudio {
     ps_lineweight_buf: String,
     ps_screening_buf: String,
 
-    // ── File-open progress ────────────────────────────────────────────────
-    /// `Some` while a CAD file is loading — drives the modal overlay.
+    // â”€â”€ File-open progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// `Some` while a CAD file is loading â€” drives the modal overlay.
     /// Cleared when the load finishes, errors, or the user cancels.
     pub(super) opening: Option<OpenProgress>,
     /// Show a lightweight notice until the next layout redraw.
@@ -1984,7 +1984,7 @@ pub(super) struct OpenCADStudio {
     /// Drawings handed to us by other launches while `opening` was busy.
     /// `opening` is a single slot that a second `OpenPathPicked` would
     /// overwrite, and `on_file_opened` drops any result arriving once it is
-    /// clear — so overlapping opens silently lose documents. Selecting several
+    /// clear â€” so overlapping opens silently lose documents. Selecting several
     /// drawings in a file manager produces exactly that (one process per file,
     /// all arriving at once), which makes this queue load-bearing, not polish.
     pub(super) pending_opens: std::collections::VecDeque<PathBuf>,
@@ -2014,7 +2014,7 @@ pub(super) struct OpenCADStudio {
         f32,
     )>,
 
-    // ── Unsaved-changes dialog ────────────────────────────────────────────
+    // â”€â”€ Unsaved-changes dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Set when the user tries to close a tab or quit while there are unsaved changes.
     pending_close: Option<PendingClose>,
     pending_block_close: Option<(u64, block_editor::BlockEditContinuation, usize)>,
@@ -2045,11 +2045,11 @@ pub(super) struct OpenCADStudio {
     pending_external_change: Option<PendingExternalChange>,
     /// OS window for the unsaved-changes confirmation dialog.
 
-    // ── Custom Save-As dialog ─────────────────────────────────────────────
+    // â”€â”€ Custom Save-As dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// OS window for the custom Save As dialog.
     /// Currently selected format string, e.g. "DWG 2013".
     save_dialog_format: String,
-    /// Editable filename (without path), e.g. "drawing.dwg" — seeds the native
+    /// Editable filename (without path), e.g. "drawing.dwg" â€” seeds the native
     /// OS save dialog's default name (native) or the download name (web).
     save_dialog_filename: String,
     /// True when triggered from the unsaved-changes flow.
@@ -2059,7 +2059,7 @@ pub(super) struct OpenCADStudio {
     /// Persisted interface language selection.
     language: crate::i18n::Language,
 
-    // ── DimStyle Dialog ───────────────────────────────────────────────────
+    // â”€â”€ DimStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Name of the style currently shown in the dialog.
     dimstyle_selected: String,
     /// The arrowhead field whose User Arrow block list is open.
@@ -2278,7 +2278,7 @@ pub(super) struct PendingExternalChange {
 
 /// One tab's slot in a web SAVEALL round (`saveall_web`): the tab identity,
 /// download name and race-guard markers snapshot when serialization started,
-/// plus the writer result — the future fills `result` in before the
+/// plus the writer result â€” the future fills `result` in before the
 /// completion message is built. The web counterpart of native's
 /// `SaveOutcome`, minus the path/continuation bookkeeping SAVEALL never had.
 #[derive(Debug, Clone)]
@@ -2390,17 +2390,17 @@ pub struct ClipboardDeps {
     /// Baked `*D` blocks referenced by copied dimensions, snapshotted from the
     /// source drawing. On paste each pasted dimension gets its own transformed
     /// copy of its block (its geometry is baked in WCS, so without this the
-    /// paste renders at the source location — or, cross-drawing, not at all).
+    /// paste renders at the source location â€” or, cross-drawing, not at all).
     /// See #290 (mirrors the in-drawing copy's #161 fix).
     pub dim_blocks: Vec<BlockDef>,
     /// Extension-dictionary object subtrees hanging off the copied entities
-    /// (XCLIP spatial filters, attached XRecords, …). Each entity's whole
+    /// (XCLIP spatial filters, attached XRecords, â€¦). Each entity's whole
     /// `xdictionary` graph is snapshotted so a cross-drawing paste recreates it
-    /// — without this a pasted clipped block loses its clip and renders whole.
+    /// â€” without this a pasted clipped block loses its clip and renders whole.
     pub ext_objects: Vec<ClipExtObjects>,
     /// Groups whose *entire* membership is in the copied selection, snapshotted
     /// from the source drawing. On paste each is recreated over the pasted
-    /// handles so a copied group stays grouped — cross-drawing too, the same way
+    /// handles so a copied group stays grouped â€” cross-drawing too, the same way
     /// the in-drawing COPY path preserves it. Partly-selected groups are not
     /// captured (copying one member should not spawn a fragment). See #440.
     pub groups: Vec<codec::objects::Group>,
@@ -2459,7 +2459,7 @@ impl ClipboardDeps {
         };
         // Scan the copied entities AND the entities inside every captured
         // block definition, so a block-internal object's layer / linetype /
-        // style is recreated too — not just the top-level selection's.
+        // style is recreated too â€” not just the top-level selection's.
         let blocks = Self::capture_blocks(doc, entities);
         let block_entities = blocks.iter().flat_map(|d| d.entities.iter());
         for e in entities.iter().chain(block_entities) {
@@ -2614,7 +2614,7 @@ impl ClipboardDeps {
 
         // Baked `*D` blocks for copied dimensions (top-level and inside captured
         // blocks), so a pasted dimension can be given its own transformed block
-        // instead of aliasing the source's — whose geometry is baked in WCS at
+        // instead of aliasing the source's â€” whose geometry is baked in WCS at
         // the source location. (#290)
         let mut dim_block_names: BTreeSet<String> = BTreeSet::new();
         for e in entities
@@ -2805,7 +2805,7 @@ impl ClipboardDeps {
 
     /// Snapshot every block definition the `entities` reference through an
     /// INSERT, walking nested INSERTs transitively. Model/paper space and
-    /// xref blocks are skipped — those aren't portable definitions.
+    /// xref blocks are skipped â€” those aren't portable definitions.
     fn capture_blocks(doc: &codec::Document, entities: &[codec::EntityType]) -> Vec<BlockDef> {
         use codec::EntityType;
         use rustc_hash::FxHashSet;
@@ -2964,7 +2964,7 @@ impl ClipboardDeps {
 
 /// Which in-canvas modal dialog is currently open (Plan B). At most one shows
 /// at a time; dialog-specific data lives in its own fields. Closed via the
-/// modal's ✕ (`Message::CloseModal`).
+/// modal's âœ• (`Message::CloseModal`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModalKind {
     About,
@@ -3043,6 +3043,8 @@ pub enum ModalKind {
     /// OVERKILL settings for the selected objects.
     Overkill,
     AecDropWarning,
+    /// The electrical symbol library, browsed and inserted from.
+    ElectricalLibrary,
     /// A converter would drop part of the drawing on save.
     ConversionLoss,
     #[cfg(not(target_arch = "wasm32"))]
@@ -3071,7 +3073,7 @@ pub enum ModalKind {
     DataExtractionUnsaved,
     /// The scene is drawn by a software rasterizer, or not at all: what that
     /// means and what usually fixes it. Queued once per verdict; the status
-    /// bar's ⚠ pill reopens it.
+    /// bar's âš  pill reopens it.
     GpuWarning,
     /// Reference Manager help window (toolbar Help button).
     XrefHelp,
@@ -3091,7 +3093,7 @@ pub enum ModalKind {
     ExtractionOutdated,
     /// Web: a crash-recovery autosave snapshot newer than the drawing's last
     /// save awaits a restore/discard decision. Distinct from the corrupt-file
-    /// `RecoveryPrompt` — nothing is wrong with the drawing itself.
+    /// `RecoveryPrompt` â€” nothing is wrong with the drawing itself.
     #[cfg(target_arch = "wasm32")]
     AutosaveRestore,
     /// Declarative modal dialog opened by a plugin.
@@ -3260,7 +3262,7 @@ pub enum Message {
     /// Web: periodic check for per-script fonts a drawing needs but hasn't
     /// fetched yet (#141). Native: never emitted.
     PollWebFonts,
-    /// Web: a per-script font finished fetching — `Ok(bytes)` or `Err(reason)`.
+    /// Web: a per-script font finished fetching â€” `Ok(bytes)` or `Err(reason)`.
     WebFontLoaded(
         crate::scene::text::web_font::Script,
         Result<Vec<u8>, String>,
@@ -3283,10 +3285,10 @@ pub enum Message {
     /// Completion of a system text clipboard read requested by PASTECLIP.
     SystemClipboardPaste(SystemClipboardText),
     /// Completion of the clipboard-image read the paste fallback starts when
-    /// no text was found — `Some((name, bytes))` attaches the image, `None`
+    /// no text was found â€” `Some((name, bytes))` attaches the image, `None`
     /// reports the usual unsupported-content error.
     SystemClipboardPasteImage(Option<(String, Vec<u8>)>),
-    /// Ctrl/Cmd+A — select all layer rows when the Layer Manager is open, or all
+    /// Ctrl/Cmd+A â€” select all layer rows when the Layer Manager is open, or all
     /// drawing objects otherwise (#236).
     SelectAllShortcut,
     /// Open the shared Find and Replace dialog (Ctrl/Cmd+F or Ctrl/Cmd+H).
@@ -3306,27 +3308,27 @@ pub enum Message {
     /// System-clipboard text read for the single-line TEXT editor.
     TextInlinePasteClip(Option<String>),
     OpenFile,
-    /// File picker returned. `Some((path, size_in_bytes))` → start loading;
-    /// `None` → user cancelled the dialog (no overlay shown).
+    /// File picker returned. `Some((path, size_in_bytes))` â†’ start loading;
+    /// `None` â†’ user cancelled the dialog (no overlay shown).
     OpenPathPicked(Option<(PathBuf, u64)>),
     /// A file was dragged from the desktop and dropped on the window (#344).
     FileDropped(PathBuf),
-    /// Web only: a drawing dragged onto the page — the DOM drop listener has
+    /// Web only: a drawing dragged onto the page â€” the DOM drop listener has
     /// already read the bytes; this opens through the web-picker flow (#344).
     /// The third field tags an autosave-restore file with its snapshot key so
     /// the snapshot is deleted only when this exact open succeeds.
     #[cfg(target_arch = "wasm32")]
     WebFileDropped(String, Vec<u8>, Option<String>),
     /// Web only: Ctrl+V captured by a focused text field, whose iced-internal
-    /// paste is inert there — read the async clipboard instead (#346).
+    /// paste is inert there â€” read the async clipboard instead (#346).
     WebFieldPaste,
-    /// Web only: clipboard text arrived for a focused field — replay it as
+    /// Web only: clipboard text arrived for a focused field â€” replay it as
     /// synthetic keystrokes on the canvas.
     WebFieldPasteText(Option<String>),
-    /// Web only: Ctrl+C captured by a focused text field — collect the
+    /// Web only: Ctrl+C captured by a focused text field â€” collect the
     /// focused input's text via a widget operation.
     WebFieldCopy,
-    /// Web only: the focused field's text — write it to the clipboard.
+    /// Web only: the focused field's text â€” write it to the clipboard.
     WebFieldCopyText(Option<String>),
     /// Pick from the one-shot snap override menu (Shift+RMB): only this
     /// snap applies to the next point pick, then the configuration restores (#337).
@@ -3335,7 +3337,7 @@ pub enum Message {
     /// the active point prompt.
     SnapOverrideMtp,
     SnapOverrideFrom,
-    /// Snap Overrides ▸ None: the next pick ignores object snaps.
+    /// Snap Overrides â–¸ None: the next pick ignores object snaps.
     SnapOverrideNone,
     /// Close the one-shot snap override menu without picking.
     SnapOverrideClose,
@@ -3343,14 +3345,14 @@ pub enum Message {
     /// file picker; the path is already known).
     OpenRecent(PathBuf),
     /// A second launch handed us a drawing to open (single instance). Queued
-    /// behind any open already in flight — see `pending_opens`.
+    /// behind any open already in flight â€” see `pending_opens`.
     OpenExternal(PathBuf),
     /// Open a URL in the system browser (start-page intro video, links).
     OpenUrl(String),
     /// Select which section a narrow (tabbed) Start page shows.
     StartSectionSelect(StartSection),
     /// Scroll the status-bar layout-tab strip horizontally by `delta` px
-    /// (negative = left). Driven by the ‹ › arrows next to the tabs.
+    /// (negative = left). Driven by the â€¹ â€º arrows next to the tabs.
     ScrollLayoutTabs(f32),
     /// Drop a path from the recent-documents list.
     RecentRemove(PathBuf),
@@ -3381,19 +3383,19 @@ pub enum Message {
     /// Web: an asynchronous OPFS copy written after Save is ready for recents.
     #[cfg(target_arch = "wasm32")]
     WebRecentStored(Result<PathBuf, String>),
-    /// Web: the `?file=` boot deep link settled — its bytes entered the
+    /// Web: the `?file=` boot deep link settled â€” its bytes entered the
     /// guarded open queue, or a notice/error text for the command line
     /// (recent copy missing, refused or failed fetch).
     #[cfg(target_arch = "wasm32")]
     WebLinkSettled(crate::io::web_link::LinkOutcome),
-    /// Web: the boot scan finished — these autosave snapshots are newer than
+    /// Web: the boot scan finished â€” these autosave snapshots are newer than
     /// the drawings' last saved copies (newest first).
     #[cfg(target_arch = "wasm32")]
     WebAutosavesScanned(Result<Vec<crate::io::web_autosave::WebAutosaveEntry>, String>),
     /// Web: restore the offered autosave snapshot into a recovered tab.
     #[cfg(target_arch = "wasm32")]
     WebAutosaveRestore,
-    /// Web: restore EVERY pending autosave snapshot — each is read and
+    /// Web: restore EVERY pending autosave snapshot â€” each is read and
     /// enqueued through the guarded open queue with its own key (the poll
     /// opens them sequentially); a snapshot is still consumed only after its
     /// own open succeeds.
@@ -3403,7 +3405,7 @@ pub enum Message {
     #[cfg(target_arch = "wasm32")]
     WebAutosaveDiscard,
     /// Web: close the restore prompt WITHOUT deleting the offered snapshot
-    /// (Escape/✕): it is simply re-offered on the next boot. Only the
+    /// (Escape/âœ•): it is simply re-offered on the next boot. Only the
     /// Discard button deletes.
     #[cfg(target_arch = "wasm32")]
     WebAutosaveDefer,
@@ -3416,7 +3418,7 @@ pub enum Message {
     WebAutosaveSnapshotFinished(Result<(), String>),
     SaveFile,
     SaveAs,
-    // ── Custom Save-As dialog ─────────────────────────────────────────────
+    // â”€â”€ Custom Save-As dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     SaveDialogFormatChanged(String),
     SaveDialogFilenameChanged(String),
     SaveDialogConfirm,
@@ -3454,7 +3456,7 @@ pub enum Message {
     CrosshairColorChanged(String),
     SnapMarkerColorChanged(String),
     CommandTextColorChanged(String),
-    /// Options → Files: the default template for new drawings.
+    /// Options â†’ Files: the default template for new drawings.
     QnewTemplateChanged(String),
     QnewTemplateBrowse,
     /// NEW: the picked template a new drawing starts from (`None` = cancelled).
@@ -3475,11 +3477,11 @@ pub enum Message {
     PaperSpaceBgChanged(String),
     /// Change Paper Space desk surround background (#RRGGBB).
     DeskSpaceBgChanged(String),
-    /// Change Grid opacity percentage (5–100).
+    /// Change Grid opacity percentage (5â€“100).
     GridOpacityChanged(u8),
     /// Change Selection Area indicator toggle (SELECTIONAREA).
     SelectionAreaToggled(bool),
-    /// Change Selection Area opacity percentage (0–100, SELECTIONAREAOPACITY).
+    /// Change Selection Area opacity percentage (0â€“100, SELECTIONAREAOPACITY).
     SelectionOpacityChanged(u8),
     SelectionHighlightOpacityChanged(u8),
     SelectionHighlightWidenChanged(u8),
@@ -3489,9 +3491,9 @@ pub enum Message {
     SelectionCrossingColorChanged(u8),
     /// Change Selection Highlight color ACI index (0 = Theme Primary, 1..=255 = ACI).
     SelectionHighlightColorChanged(u8),
-    /// Change Grip size in pixels (1–25, GRIPSIZE).
+    /// Change Grip size in pixels (1â€“25, GRIPSIZE).
     GripSizeChanged(u8),
-    /// Change the object-snap marker size in pixels (1–20, SNAPMARKERSIZE).
+    /// Change the object-snap marker size in pixels (1â€“20, SNAPMARKERSIZE).
     SnapMarkerSizeChanged(u8),
     /// Change Unselected Grip color ACI index (0 = Theme Primary, 1..=255 = ACI, GRIPCOLOR).
     GripColorChanged(u8),
@@ -3528,7 +3530,7 @@ pub enum Message {
     CommandLineFadeChanged(i32),
     /// Change the command line's panel opacity (COMMANDLINEOPACITY).
     CommandLineOpacityChanged(u8),
-    /// Options › Display: the command line font family ("" = interface font).
+    /// Options â€º Display: the command line font family ("" = interface font).
     CommandLineFontChanged(String),
     CommandLineFontSizeChanged(u16),
     /// Toggle reversing the mouse-wheel zoom direction (ZOOMWHEEL).
@@ -3552,9 +3554,9 @@ pub enum Message {
     /// which is how a value above the system variable's own range is set
     /// (ZOOMFACTOR).
     ZoomFactorInputChanged(String),
-    /// Options → User Preferences: right-click behaviour (SHORTCUTMENU).
+    /// Options â†’ User Preferences: right-click behaviour (SHORTCUTMENU).
     RightClickModeChanged(settings::RightClickMode),
-    /// Options → User Preferences: time-sensitive hold threshold, ms.
+    /// Options â†’ User Preferences: time-sensitive hold threshold, ms.
     RightClickHoldMsChanged(i32),
     /// Toggle TEXTEDIT ending after one object (TEXTEDITMODE).
     TextEditModeChanged(bool),
@@ -3616,13 +3618,13 @@ pub enum Message {
     LanguageChanged(crate::i18n::Language),
     /// Drop every entity from the active drawing.
     ClearScene,
-    // ── Layer Translator (#624) ──────────────────────────────────────────
+    // â”€â”€ Layer Translator (#624) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Pick the drawing whose layers become the translation targets.
     LayerTranslatorLoad,
     /// A target set was read from `path`.
     LayerTranslatorLoaded(std::path::PathBuf),
     /// Web: a standards drawing picked and parsed in the browser, with the
-    /// target layers already extracted — a name-only path has nothing behind
+    /// target layers already extracted â€” a name-only path has nothing behind
     /// it for `load_targets` to read. `Ok(None)` = cancelled.
     #[cfg(target_arch = "wasm32")]
     LayerTranslatorLoadedWeb(
@@ -3650,7 +3652,7 @@ pub enum Message {
     LayerTranslatorMappingsPath(std::path::PathBuf, bool),
     /// Apply every mapping.
     LayerTranslatorTranslate,
-    /// Set the active tab's render mode — one of the seven visual styles, and
+    /// Set the active tab's render mode â€” one of the seven visual styles, and
     /// the only way a style is ever set.
     SetRenderMode(codec::entities::ViewportRenderMode),
     /// Open or close the active viewport's visual-style flyout.
@@ -3697,7 +3699,7 @@ pub enum Message {
     RibbonFloat(crate::ui::ribbon::FloatMsg),
     /// Ribbon key tips: Alt, typed codes and Esc.
     KeyTip(crate::ui::ribbon::KeyTipInput),
-    /// A ribbon tool button was clicked — highlights the tool and dispatches its event.
+    /// A ribbon tool button was clicked â€” highlights the tool and dispatches its event.
     RibbonToolClick {
         tool_id: String,
         event: ModuleEvent,
@@ -3733,7 +3735,7 @@ pub enum Message {
     PluginDialogSubmit,
     /// Cancel clicked in a plugin modal dialog.
     PluginDialogCancel,
-    // ── Plugin dock panels ─────────────────────────────────────────────────
+    // â”€â”€ Plugin dock panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     PluginPanelButtonClick(String, String, Option<String>),
     PluginPanelTextChange(String, String, String),
     PluginPanelBoolToggle(String, String, bool),
@@ -3744,7 +3746,7 @@ pub enum Message {
     PluginPanelTableAddRow(String, String),
     PluginPanelTableRemoveRow(String, String, usize),
     PluginPanelSectionToggle(String, String),
-    // ── Document tabs ──────────────────────────────────────────────────────
+    // â”€â”€ Document tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Create a new empty document tab.
     TabNew,
     /// Switch to the given tab index.
@@ -3773,7 +3775,7 @@ pub enum Message {
     DocTabCopyFullPath(usize),
     /// Reveal the saved drawing in the platform file manager.
     DocTabOpenFileLocation(usize),
-    // ── Unsaved-changes confirmation dialog ───────────────────────────────
+    // â”€â”€ Unsaved-changes confirmation dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// User clicked "Save" in the unsaved-changes dialog.
     UnsavedDialogSave,
     /// User clicked "Discard" in the unsaved-changes dialog.
@@ -3788,7 +3790,7 @@ pub enum Message {
     BlockVisibility(crate::ui::window::block_visibility::Action),
     BlockLookup(crate::ui::window::block_lookup::Action),
     BlockPropertiesTable(crate::ui::window::block_properties_table::Action),
-    // ── Parameters Manager ──────────────────────────────────────────────
+    // â”€â”€ Parameters Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// The operator clicked a row's numeric cell: the field opens on that row.
     ParametersManagerEdit(String, crate::ui::window::parameters_manager::Cell),
     ParametersManagerInput(String),
@@ -3809,7 +3811,7 @@ pub enum Message {
     /// Select Similar settings: flip one SELECTSIMILARMODE bit.
     SelectSimilarSettingsToggle(u16),
     SelectSimilarSettingsOk,
-    // ── AEC / unsupported-object drop warning (lossy Save-As) ──────────────
+    // â”€â”€ AEC / unsupported-object drop warning (lossy Save-As) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Save as the source DWG version so the unsupported objects survive.
     AecDropSameVersion,
     /// Proceed with the chosen target format, dropping the unsupported objects.
@@ -3820,7 +3822,7 @@ pub enum Message {
     ConversionLossProceed,
     /// Drop the held-back save from the conversion-loss warning.
     ConversionLossBack,
-    /// Periodic autosave tick — write `.sv$` recovery files for dirty tabs.
+    /// Periodic autosave tick â€” write `.sv$` recovery files for dirty tabs.
     AutoSave,
     /// A clean viewport frame is ready for thumbnail capture.
     ThumbnailCaptureFrame,
@@ -3842,7 +3844,7 @@ pub enum Message {
     /// Web SAVE: the serializer worker (or the inline fallback) produced the
     /// drawing bytes; download them and finish the save bookkeeping. The
     /// epoch/revision/camera markers snapshot the tab when serialization
-    /// started — the web counterpart of native's `snapshot_is_current`, so a
+    /// started â€” the web counterpart of native's `snapshot_is_current`, so a
     /// save that raced user edits does not wipe the newer dirty flag.
     #[cfg(target_arch = "wasm32")]
     WebSaveSerialized {
@@ -3856,8 +3858,8 @@ pub enum Message {
         result: Result<Vec<u8>, String>,
     },
     /// Web SAVE with the File System Access API: the showSaveFilePicker
-    /// promise settled. The picker ran in the save-confirm handler — the
-    /// user-gesture moment — because the serialization that follows may
+    /// promise settled. The picker ran in the save-confirm handler â€” the
+    /// user-gesture moment â€” because the serialization that follows may
     /// outlast the transient-activation window; the retained handle (kept
     /// in io::fs_access's tab-keyed registry, since a JsValue handle cannot
     /// ride in a Send Message) is written to later without needing a
@@ -3912,7 +3914,7 @@ pub enum Message {
     /// Web ARCHIVE/ETRANSMIT completion: the serializer worker (or the
     /// inline fallback) produced the drawing bytes; assemble the transmittal
     /// ZIP from the dependencies collected at command time, download it and
-    /// report — including the skipped-dependency lines.
+    /// report â€” including the skipped-dependency lines.
     #[cfg(target_arch = "wasm32")]
     WebArchiveSerialized {
         cmd: String,
@@ -3943,7 +3945,7 @@ pub enum Message {
     /// Cancel the conflicted save and any pending close/quit continuation.
     #[cfg(not(target_arch = "wasm32"))]
     ExternalChangeCancel,
-    // ─────────────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     CommandInput(String),
     CommandSubmit,
     Command(String),
@@ -3961,7 +3963,7 @@ pub enum Message {
     /// `None` = cancelled.
     #[cfg(target_arch = "wasm32")]
     CenterlineLinetypeFilePicked(Option<(String, String)>),
-    /// Web DATALINK: the picked .csv file's name and raw bytes — registered
+    /// Web DATALINK: the picked .csv file's name and raw bytes â€” registered
     /// in the picked-source registry, then fed to the same table-insert path
     /// the native typed-path command uses. `None` = cancelled.
     #[cfg(target_arch = "wasm32")]
@@ -3971,7 +3973,7 @@ pub enum Message {
     /// itself isn't focused (focus parked on viewport / button / etc.)
     /// so typing still routes to the command line.
     CommandAppendChar(String),
-    /// Pop the trailing character off the command-line input — backspace
+    /// Pop the trailing character off the command-line input â€” backspace
     /// counterpart to `CommandAppendChar`.
     CommandBackspace,
     /// TAB pressed: move focus to the next dynamic-input field or
@@ -3979,15 +3981,15 @@ pub enum Message {
     DynTabNext,
     /// Shift+TAB: move to the previous contextual autocomplete suggestion.
     DynTabPrev,
-    /// Split the active Model viewport in two. `true` → horizontal divider
-    /// (top / bottom); `false` → vertical divider (left / right).
+    /// Split the active Model viewport in two. `true` â†’ horizontal divider
+    /// (top / bottom); `false` â†’ vertical divider (left / right).
     SplitModelViewport(bool),
     /// Close the active Model viewport, merging it into a neighbour.
     /// Only meaningful when more than one model tile exists.
     CloseModelViewport,
-    /// Recall previous command in history (↑ arrow key).
+    /// Recall previous command in history (â†‘ arrow key).
     CommandHistoryPrev,
-    /// Recall next command in history (↓ arrow key).
+    /// Recall next command in history (â†“ arrow key).
     CommandHistoryNext,
     /// An unconsumed arrow key; the active editor gets first choice, otherwise
     /// the configurable shortcut table handles it.
@@ -4025,11 +4027,11 @@ pub enum Message {
     /// Start dragging the Layer Manager's Name-column divider.
     LayerNameColGrab,
     /// Toggle the persistent literal-space mode (the `>` button): while on,
-    /// every command line behaves as if it started with `>` — Space stays in
+    /// every command line behaves as if it started with `>` â€” Space stays in
     /// the input instead of submitting. Saved in the user config.
     CommandLiteralToggle,
     /// Copy the full command-line history (every line) to the system
-    /// clipboard as plain text — issue #232, so output can be pasted for
+    /// clipboard as plain text â€” issue #232, so output can be pasted for
     /// debugging instead of screenshotted.
     CommandHistoryCopy,
     #[cfg(target_arch = "wasm32")]
@@ -4044,10 +4046,10 @@ pub enum Message {
     /// non-editing actions (cursor moves, selection, scroll) are applied so
     /// the log stays read-only while remaining drag-selectable and copyable.
     CommandHistoryEdit(iced::widget::text_editor::Action),
-    /// User clicked an autocomplete suggestion — fill the input with
+    /// User clicked an autocomplete suggestion â€” fill the input with
     /// the chosen command name and dispatch it.
     CommandSuggestionPick(String),
-    /// User clicked a command-line option button — feed its keyword to the
+    /// User clicked a command-line option button â€” feed its keyword to the
     /// active command as if typed (empty keyword = Enter). (#304)
     CommandOptionPick(String),
     /// The pointer entered (true) or left the command line's overlay history.
@@ -4140,7 +4142,7 @@ pub enum Message {
     LayerRenameFocus(Option<iced::advanced::widget::Id>),
     /// The widget focused after a click while a style rename is open.
     StyleRenameFocus(Option<iced::advanced::widget::Id>),
-    // ── Layer State Manager ─────────────────────────────────────────────
+    // â”€â”€ Layer State Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     LayerStateManagerOpen,
     LayerStateManagerSelect(String),
     LayerStateManagerNew,
@@ -4184,12 +4186,12 @@ pub enum Message {
     ViewportMiddleRelease,
     ViewportScroll(mouse::ScrollDelta),
     ViewportExit,
-    // ── Per-pane Model viewport (pane_grid) ───────────────────────────────
-    /// A pane_grid divider was dragged — resize the split.
+    // â”€â”€ Per-pane Model viewport (pane_grid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// A pane_grid divider was dragged â€” resize the split.
     PaneResized(iced::widget::pane_grid::ResizeEvent),
-    /// A pane body was clicked — focus that pane.
+    /// A pane body was clicked â€” focus that pane.
     PaneClicked(iced::widget::pane_grid::Pane),
-    /// A pane was drag-and-dropped onto another — swap them.
+    /// A pane was drag-and-dropped onto another â€” swap them.
     PaneDragged(iced::widget::pane_grid::DragEvent),
     /// Per-pane mouse events. `usize` = the pane's tile index; the `Point` is
     /// pane-local (offset to canvas coords + focus in the handler).
@@ -4203,25 +4205,25 @@ pub enum Message {
     PaneMiddlePress(usize),
     PaneMiddleRelease(usize),
     PaneScroll(usize, mouse::ScrollDelta),
-    /// Drag-handle pressed on the active pane's controls bar: arm a pane move —
+    /// Drag-handle pressed on the active pane's controls bar: arm a pane move â€”
     /// the next pane released over is swapped with the active pane.
     PaneMoveStart,
     ViewCubeSnap(CubeRegion),
     /// World-frame view snap from a compass cardinal (N/E/S/W), bypassing the
     /// UCS so the compass stays world-aligned.
     ViewCubeSnapWorld(CubeRegion),
-    /// ViewCube home button → jump to the default isometric view.
+    /// ViewCube home button â†’ jump to the default isometric view.
     ViewCubeHome,
-    /// ViewCube roll arrow → roll the view 90° (true = clockwise).
+    /// ViewCube roll arrow â†’ roll the view 90Â° (true = clockwise).
     ViewCubeRoll(bool),
-    /// ViewCube nudge triangle → tip / spin the view 90°.
+    /// ViewCube nudge triangle â†’ tip / spin the view 90Â°.
     ViewCubeNudge(crate::scene::NudgeDir),
-    /// WCS/UCS selector under the cube — empty string = World.
+    /// WCS/UCS selector under the cube â€” empty string = World.
     SetViewcubeUcs(String),
-    /// User picked an item in the multi-functional grip popup menu —
+    /// User picked an item in the multi-functional grip popup menu â€”
     /// the index is into `grip_popup.items`.
     GripMenuPick(usize),
-    /// User picked a dynamic-block visibility state — index into the
+    /// User picked a dynamic-block visibility state â€” index into the
     /// visibility dropdown's items.
     VisibilityPick(usize),
     TableRowPick(usize),
@@ -4229,7 +4231,7 @@ pub enum Message {
     TestVisibilityPick(usize),
     /// The Test Block window's lookup widget picked a table entry.
     TestLookupPick(usize),
-    /// User picked a dynamic-block flip state — `0` base, `1` flipped.
+    /// User picked a dynamic-block flip state â€” `0` base, `1` flipped.
     FlipPick(usize),
     /// Timer pulse while the cursor is dwelling on a grip; drives the
     /// dwell-to-popup transition without requiring further mouse motion.
@@ -4256,24 +4258,24 @@ pub enum Message {
     /// A window opened at this size; the main window's sets the layout as
     /// a resize does.
     WindowOpened(window::Id, f32, f32),
-    /// Enter pressed globally — finalises the active command (no text-input involvement).
+    /// Enter pressed globally â€” finalises the active command (no text-input involvement).
     CommandFinalize,
-    /// Space pressed globally — a literal space in the MText preview, otherwise
+    /// Space pressed globally â€” a literal space in the MText preview, otherwise
     /// finalises like Enter.
     CommandSpace,
-    /// Escape pressed globally — cancels the active command.
+    /// Escape pressed globally â€” cancels the active command.
     CommandEscape,
     /// Toggle the global snap on/off (OSNAP button body click).
     ToggleSnapEnabled,
-    /// Toggle 3D object snap on/off — F4.
+    /// Toggle 3D object snap on/off â€” F4.
     ToggleSnap3dEnabled,
-    /// Toggle grid-snap on/off — F9 / SNAP status-bar button.
+    /// Toggle grid-snap on/off â€” F9 / SNAP status-bar button.
     ToggleGridSnap,
     /// Enable or disable isometric drafting.
     ToggleIsometricDrafting,
     /// Select one isometric drafting axis pair.
     SetIsoPlane(settings::IsoPlane),
-    /// Advance Left → Top → Right, enabling isometric drafting if necessary.
+    /// Advance Left â†’ Top â†’ Right, enabling isometric drafting if necessary.
     CycleIsoPlane,
     /// Reset SNAPANG and return the active drafting coordinate system to World.
     ResetDraftingRotation,
@@ -4287,13 +4289,13 @@ pub enum Message {
     ToggleFileTabs,
     /// Toggle the layout tabs at the bottom (LAYOUTTAB).
     ToggleLayoutTabs,
-    /// Toggle grid display in the viewport — F7 / GRID status-bar button.
+    /// Toggle grid display in the viewport â€” F7 / GRID status-bar button.
     ToggleGrid,
-    /// Toggle orthogonal drawing constraint — F8 / ORTHO status-bar button.
+    /// Toggle orthogonal drawing constraint â€” F8 / ORTHO status-bar button.
     ToggleOrtho,
-    /// Toggle LWDISPLAY header flag — LWT status-bar button.
+    /// Toggle LWDISPLAY header flag â€” LWT status-bar button.
     ToggleLineweightDisplay,
-    /// Toggle polar-angle constraint — F10 / POLAR status-bar button.
+    /// Toggle polar-angle constraint â€” F10 / POLAR status-bar button.
     TogglePolar,
     /// Set polar tracking angle increment (POLAR picker / right-click cycle).
     SetPolarAngle(f32),
@@ -4356,7 +4358,7 @@ pub enum Message {
     ToggleLayoutList,
     /// Close the Model/layout list dropdown.
     CloseLayoutList,
-    /// Cycle the coordinate readout mode ($COORDS): static → live → polar.
+    /// Cycle the coordinate readout mode ($COORDS): static â†’ live â†’ polar.
     CycleCoordsMode,
     /// Removes one flagged redundant or conflicting constraint from the
     /// current parametric scope.
@@ -4401,13 +4403,13 @@ pub enum Message {
     CloseUnitsPopup,
     /// Set the drawing units (INSUNITS) for the active drawing.
     SetDrawingUnits(i16),
-    /// LUNITS — how lengths are written, from the status-bar units button.
+    /// LUNITS â€” how lengths are written, from the status-bar units button.
     SetLinearFormat(i16),
     /// Open the Drawing Units dialog, seeded from the active drawing.
     OpenDrawingUnits,
     /// One field of the Drawing Units dialog changed.
     DrawingUnitsField(crate::ui::window::drawing_units::Field),
-    /// Drawing Units OK — write the working copy into the drawing.
+    /// Drawing Units OK â€” write the working copy into the drawing.
     DrawingUnitsApply,
     /// Block Definition dialog field updates
     BlockDefName(String),
@@ -4473,7 +4475,7 @@ pub enum Message {
     ToggleOTrack,
     /// Toggle an individual snap mode (from popup row click).
     ToggleSnap(crate::snap::SnapType),
-    /// Open / close the OSNAP popup (▾ arrow click).
+    /// Open / close the OSNAP popup (â–¾ arrow click).
     ToggleSnapPopup,
     /// Close the OSNAP popup (click-catcher outside the panel).
     CloseSnapPopup,
@@ -4481,7 +4483,7 @@ pub enum Message {
     SnapSelectAll,
     /// Disable all snap modes.
     SnapClearAll,
-    // ── Drafting Settings Dialog ──────────────────────────────────────────
+    // â”€â”€ Drafting Settings Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DraftingSettingsTabChanged(crate::ui::window::drafting_settings::DraftingSettingsTab),
     DraftingSettingsToggleGrid,
     DraftingSettingsToggleSnap,
@@ -4554,13 +4556,13 @@ pub enum Message {
         dropdown_id: &'static str,
         cmd: &'static str,
     },
-    /// Delete key — erase all currently selected entities.
+    /// Delete key â€” erase all currently selected entities.
     DeleteSelected,
     Undo,
     Redo,
     UndoMany(usize),
     RedoMany(usize),
-    // ── Ribbon ────────────────────────────────────────────────────────────
+    // â”€â”€ Ribbon â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// User selected a layer from the layer combobox in the ribbon.
     RibbonLayerChanged(String),
     /// Live text of the ribbon layer dropdown's search box (#343).
@@ -4585,7 +4587,7 @@ pub enum Message {
         name: String,
     },
 
-    // ── Properties panel ──────────────────────────────────────────────────
+    // â”€â”€ Properties panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// User selected a layer from the layer pick_list in the Properties panel.
     PropLayerChanged(String),
     PropSelectionGroupChanged(crate::ui::properties::SelectionGroup),
@@ -4602,7 +4604,7 @@ pub enum Message {
     PropLinetypeChanged(String),
     /// User toggled a boolean property (e.g. Invisible).
     PropBoolToggle(&'static str),
-    /// User stepped the Current Vertex selector by ±1 (polyline vertex nav).
+    /// User stepped the Current Vertex selector by Â±1 (polyline vertex nav).
     PropVertexStep(i8),
     /// User selected a hatch pattern from the pattern pick_list in Properties.
     PropHatchPatternChanged(String),
@@ -4651,7 +4653,7 @@ pub enum Message {
     /// Escape whose global shortcut arrives a moment later.
     PropBlockPickerDismiss { key: crate::scene::model::object::BlockParameterKey, quick: bool },
 
-    /// Toggle a collapsed coordinate group ("Position", "Scale", …) open or
+    /// Toggle a collapsed coordinate group ("Position", "Scale", â€¦) open or
     /// closed in the Properties panel, keyed `section:base`.
     PropGroupToggle(String),
     /// Toggle an entire Properties-panel section, keyed by its title.
@@ -4682,7 +4684,7 @@ pub enum Message {
     /// A left mouse button was pressed anywhere. The clicked widget has already
     /// been given focus by the time this arrives (the widget tree processes the
     /// event before the runtime broadcasts it to subscriptions), so a focus
-    /// sweep — which resolves as `PropSyncActive` — reveals whether a property
+    /// sweep â€” which resolves as `PropSyncActive` â€” reveals whether a property
     /// value field was clicked and can select its whole value.
     PropPointerPressed,
     /// Toggle the inline color picker dropdown open/closed.
@@ -4691,7 +4693,7 @@ pub enum Message {
     PropPickerSurface(bool, Box<Message>),
     /// Toggle the MTEXT background-colour picker dropdown open/closed.
     PropBgColorPickerToggle,
-    /// User picked an MTEXT background fill colour — sets `background_color`
+    /// User picked an MTEXT background fill colour â€” sets `background_color`
     /// and switches the background mode to Fill so it shows immediately.
     PropBgColorChanged(AcadColor),
     /// Toggle the generic per-field colour picker (e.g. a hatch gradient colour)
@@ -4743,7 +4745,7 @@ pub enum Message {
     LayoutRenameCommit,
     /// Cancel an in-progress rename (Escape).
     LayoutRenameCancel,
-    // ── Layout Manager Panel ────────────────────────────────────────────
+    // â”€â”€ Layout Manager Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     LayoutManagerOpen,
     #[allow(dead_code)]
     LayoutManagerClose,
@@ -4757,7 +4759,7 @@ pub enum Message {
     LayoutManagerSetCurrent,
     /// Switch the UI color scheme.
     SetTheme(Theme),
-    // ── Keyboard Shortcut Editor ────────────────────────────────────────
+    // â”€â”€ Keyboard Shortcut Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     ShortcutsPanelOpen,
     #[allow(dead_code)]
     ShortcutsPanelClose,
@@ -4793,7 +4795,7 @@ pub enum Message {
     ShortcutCaptureCancel,
     /// Canonical key emitted by the global keyboard subscription.
     ShortcutPressed(String),
-    // ── Command Alias Editor (ALIASEDIT) ────────────────────────────────
+    // â”€â”€ Command Alias Editor (ALIASEDIT) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open the command-alias editor modal, seeding rows from the alias table.
     AliasEditorOpen,
     /// Pick an AutoCAD/OpenCAD PGP file, then merge supported aliases for review.
@@ -4827,7 +4829,7 @@ pub enum Message {
     AliasEditorCloseDiscard,
     /// Keep editing: hide the discard confirmation.
     AliasEditorCloseKeep,
-    // ── Named Parameters (PARAMETERS) ───────────────────────────────────
+    // â”€â”€ Named Parameters (PARAMETERS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open the named-parameter editor, seeding rows from the active tab's
     /// `Scene::named_parameters`.
     NamedParametersOpen,
@@ -4858,9 +4860,9 @@ pub enum Message {
     /// and re-solve every constraint that reads a named parameter; stays
     /// open.
     NamedParametersApply,
-    // ── Parameters / Constraints sections embedded in Properties ──────────
+    // â”€â”€ Parameters / Constraints sections embedded in Properties â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Live text of one column of parameter row `index`, keyed by its
-    /// `ParameterTable::iter()` position — see `PropValue::ParamRow`.
+    /// `ParameterTable::iter()` position â€” see `PropValue::ParamRow`.
     PropParamInput {
         index: usize,
         field: crate::ui::window::named_parameters::ParamField,
@@ -4882,17 +4884,17 @@ pub enum Message {
     PropConstraintLinkClick(Vec<codec::Handle>),
     /// Remove one parametric constraint selected from Properties or the viewport.
     PropConstraintDelete(crate::scene::parametric_constraints::ConstraintId),
-    // ── About window ────────────────────────────────────────────────────
+    // â”€â”€ About window â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     AboutOpen,
-    // ── Graphics warning ────────────────────────────────────────────────
-    /// The status bar's ⚠ pill: reopen the graphics warning.
+    // â”€â”€ Graphics warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    /// The status bar's âš  pill: reopen the graphics warning.
     GpuWarningOpen,
     /// "Don't show again for this device": close the warning and remember
     /// the verdict it described, so only a different one prompts again.
     GpuWarningSilence,
     /// Close whatever in-canvas modal dialog is open (Plan B).
     CloseModal,
-    // ── Attribute editor dialog ───────────────────────────────────────────
+    // â”€â”€ Attribute editor dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open the attribute editor for an INSERT (double-click / ATTEDIT).
     AttrEditorOpen(codec::Handle),
     /// Switch the editor's active tab.
@@ -4904,7 +4906,7 @@ pub enum Message {
         idx: usize,
         value: String,
     },
-    // Text Options — all act on the selected row:
+    // Text Options â€” all act on the selected row:
     AttrEditorTextStyle(String),
     AttrEditorJustify(String),
     AttrEditorHeight(String),
@@ -4913,13 +4915,13 @@ pub enum Message {
     AttrEditorOblique(String),
     AttrEditorBackwards(bool),
     AttrEditorUpsideDown(bool),
-    // Properties — all act on the selected row:
+    // Properties â€” all act on the selected row:
     AttrEditorLayer(String),
     AttrEditorLinetype(String),
     AttrEditorColor(String),
     AttrEditorLineweight(codec::types::LineWeight),
     /// Commit every attribute edit to the block, keeping the dialog open
-    /// (Apply); the frame ✕ closes and discards any un-applied edits.
+    /// (Apply); the frame âœ• closes and discards any un-applied edits.
     AttrEditorApply,
     /// Title-bar pressed: begin dragging the active modal.
     ModalGrab,
@@ -4928,13 +4930,13 @@ pub enum Message {
     /// Title-bar released: stop dragging.
     ModalDragRelease,
     AboutCopyInfo,
-    // ── Plugin Manager window ───────────────────────────────────────────
+    // â”€â”€ Plugin Manager window â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     PluginManagerOpen,
     #[allow(dead_code)]
     PluginManagerClose,
     /// Enable (`true`) or disable (`false`) the plugin with this id.
     SetPluginEnabled(String, bool),
-    // ── Plugin marketplace (install from a linked repo's releases) ─────────
+    // â”€â”€ Plugin marketplace (install from a linked repo's releases) â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Edit the add-repository text field.
     PluginRepoInput(String),
     /// Filter installed and available plugin cards.
@@ -4978,7 +4980,7 @@ pub enum Message {
     PluginInstalled(Result<String, String>),
     /// Delete an installed plugin's folder (effective next restart).
     PluginUninstall(String),
-    // ── Point Style (DDPTYPE) dialog ──────────────────────────────────────
+    // â”€â”€ Point Style (DDPTYPE) dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Set the full PDMODE value from a glyph-grid cell.
     PointStyleSetMode(i16),
     /// Choose size mode: `true` = relative to screen (PDSIZE < 0), `false` =
@@ -4990,21 +4992,21 @@ pub enum Message {
     PointStyleApplySize,
     /// Apply the point-size field and close the dialog (OK button).
     PointStyleOk,
-    // ── Quick Select / Select Similar ───────────────────────────────────
+    // â”€â”€ Quick Select / Select Similar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Extend the current selection with every entity in the active
     /// layout that matches a selected entity by (type, layer).
     SelectSimilar,
     /// Replace the current selection with every other selectable object in
     /// the active layout (the complement of what's selected now).
     InvertSelection,
-    /// Keyboard modifier state changed — tracks whether Shift is held so the
+    /// Keyboard modifier state changed â€” tracks whether Shift is held so the
     /// pick path can do subtractive (Shift+click) selection.
     SetModifiers {
         shift: bool,
         ctrl: bool,
         alt: bool,
     },
-    // ── In-place MText editor ───────────────────────────────────────────
+    // â”€â”€ In-place MText editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Text-area edit action from the multi-line editor widget.
     MTextEdit(iced::widget::text_editor::Action),
     /// Toolbar character-format toggle applied to the selection.
@@ -5096,7 +5098,7 @@ pub enum Message {
     MTextFindNext,
     MTextReplaceNext,
     MTextReplaceAll,
-    /// Toolbar colour picker (same widget as Properties) — applies to the
+    /// Toolbar colour picker (same widget as Properties) â€” applies to the
     /// selection, or the whole text when nothing is selected.
     MTextColorChanged(AcadColor),
     /// Open / close the MText colour picker popup.
@@ -5128,12 +5130,12 @@ pub enum Message {
     ModalContentResized(iced::Size),
     /// Discard the editor without creating / changing the entity.
     MTextCancel,
-    // ── In-place single-line TEXT editor ────────────────────────────────
+    // â”€â”€ In-place single-line TEXT editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Text-field input changed.
     TextInlineInput(String),
     /// Commit the editor: create or update the TEXT entity.
     TextInlineOk,
-    // ── Viewport right-click context menu ───────────────────────────────
+    // â”€â”€ Viewport right-click context menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// A context-menu row was picked (mouse or keyboard). Closes the menu and
     /// runs the row's action through the same message the equivalent typed
     /// input / shortcut would have produced.
@@ -5142,7 +5144,7 @@ pub enum Message {
     ContextMenuSubmenuToggle(crate::ui::popup::context_menu::SubmenuId),
     /// Keyboard navigation inside the open context menu.
     ContextMenuNavigate(ContextMenuNav),
-    // ── Quad cursor menu ──────────────────────────────────────────────────
+    // â”€â”€ Quad cursor menu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// A quad cursor menu interaction (toggle / expand / tab / pick / close)
     /// from the overlay or the keyboard while the quad is open.
     Quad(crate::ui::popup::quad_menu::QuadMsg),
@@ -5159,9 +5161,9 @@ pub enum Message {
     QSelectClose,
     /// Candidate scope: active space or the current selection.
     QSelectSetScope(QSelectScope),
-    /// Type filter — `None` means "any type".
+    /// Type filter â€” `None` means "any type".
     QSelectSetType(Option<String>),
-    /// Property to compare. `None` means "no property filter — just type
+    /// Property to compare. `None` means "no property filter â€” just type
     /// filter applies"; the operator and value fields are ignored in
     /// that case.
     QSelectSetProperty(Option<QSelectPropertyChoice>),
@@ -5182,11 +5184,11 @@ pub enum Message {
     QSelectClearConditions,
     QSelectCancelEdit,
     QSelectApply,
-    /// The user clicked the title-bar ✕ (fires before the window closes).
+    /// The user clicked the title-bar âœ• (fires before the window closes).
     WindowCloseRequested(window::Id),
     /// A window was fully closed (fires after `window::close()` is called).
     OsWindowClosed(window::Id),
-    /// No-op — used as a fallback when a TabEvent has no host mapping.
+    /// No-op â€” used as a fallback when a TabEvent has no host mapping.
     Noop,
     /// Suppress menu-root tooltips between clicking the root and leaving it.
     StatusMenuTooltipHidden(bool),
@@ -5196,17 +5198,17 @@ pub enum Message {
     /// User dismissed the update-notice window.
     UpdateNoticeClose,
     DonationPromptDonate,
-    /// First-launch default-association prompt: user accepted — register this
+    /// First-launch default-association prompt: user accepted â€” register this
     /// app as the default handler for .dwg / .dxf.
     AssocPromptYes,
     /// First-launch default-association prompt: user declined (or "not now").
     AssocPromptNo,
     /// Result of the platform default-association call.
     AssocResult(Result<String, String>),
-    /// User clicked the "Open release page" button — opens the GitHub
+    /// User clicked the "Open release page" button â€” opens the GitHub
     /// release URL in the OS default browser and closes the notice.
     UpdateNoticeOpenRelease,
-    // ── Plot / Export ─────────────────────────────────────────────────────
+    // â”€â”€ Plot / Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Show the SVG save-file dialog and trigger export.
     PlotExport,
     /// Callback after the user picks (or cancels) the export path.
@@ -5230,7 +5232,7 @@ pub enum Message {
     /// Send current layout to the system printer (via lp / lpr).
     PrintToPrinter,
     /// Callback from the async printer job.
-    /// Web never constructs it — printing opens the PDF preview instead.
+    /// Web never constructs it â€” printing opens the PDF preview instead.
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     PrintResult(Result<String, String>),
     /// Open the full Plot / Print dialog (seeds state from the layout).
@@ -5265,14 +5267,14 @@ pub enum Message {
     PrintAllPrint,
     /// Completion of a Print All PDF or printer job.
     PrintAllFinished(Result<String, String>),
-    // ── Plot Style Table ─────────────────────────────────────────────────
+    // â”€â”€ Plot Style Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open file dialog to load a CTB/STB plot style table.
     PlotStyleLoad,
     /// LINETYPE Load: the picked `.lin` file's text, `None` when cancelled.
     /// A picked `.lin`: its folder (native only) and text.
     LinetypeLoaded(Option<(Option<std::path::PathBuf>, String)>),
     /// Callback when the user picks (or cancels) a CTB/STB file.
-    /// The Load… picker finished: a table, nothing (cancelled), or why the
+    /// The Loadâ€¦ picker finished: a table, nothing (cancelled), or why the
     /// file could not be read.
     PlotStyleLoaded(Result<Option<crate::io::plot_style::PlotStyleTable>, String>),
     /// Clear the active plot style table.
@@ -5296,7 +5298,7 @@ pub enum Message {
     PlotStylePanelSave,
     /// Save callback.
     PlotStylePanelSavePath(Option<std::path::PathBuf>),
-    // ── TextStyle Font Browser ────────────────────────────────────────────
+    // â”€â”€ TextStyle Font Browser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     TextStyleDialogOpen,
     #[allow(dead_code)]
     TextStyleDialogClose,
@@ -5337,7 +5339,7 @@ pub enum Message {
     /// Flip a boolean flag on the selected text style (backward / upside_down /
     /// vertical / annotative), applied immediately.
     TextStyleToggle(&'static str),
-    // ── TableStyle Dialog ─────────────────────────────────────────────────
+    // â”€â”€ TableStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     TableStyleDialogOpen,
     #[allow(dead_code)]
     TableStyleDialogClose,
@@ -5392,7 +5394,7 @@ pub enum Message {
     TableStyleTemplatePick,
     /// Drop the style's starting table.
     TableStyleTemplateRemove,
-    // ── MLineStyle Dialog ─────────────────────────────────────────────────
+    // â”€â”€ MLineStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     MlStyleDialogOpen,
     #[allow(dead_code)]
     MlStyleDialogClose,
@@ -5416,7 +5418,7 @@ pub enum Message {
     },
     MlStyleElementAdd,
     MlStyleElementDelete(usize),
-    // ── MLeaderStyle Dialog ───────────────────────────────────────────────
+    // â”€â”€ MLeaderStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     MLeaderStyleDialogOpen,
     #[allow(dead_code)]
     MLeaderStyleDialogClose,
@@ -5446,7 +5448,7 @@ pub enum Message {
         value: String,
     },
     MLeaderStyleApply,
-    // ── DimStyle Dialog ───────────────────────────────────────────────────
+    // â”€â”€ DimStyle Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DimStyleDialogOpen,
     DimStyleDialogClose,
     /// Apply edits to the selected style.
@@ -5495,7 +5497,7 @@ pub enum Message {
         field: &'static str,
         value: String,
     },
-    // ── Raster Image ──────────────────────────────────────────────────────
+    // â”€â”€ Raster Image â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open file-picker dialog for IMAGE command (async).
     ImagePick,
     /// Result of the image file picker + pixel dimension decode.
@@ -5506,7 +5508,7 @@ pub enum Message {
     ImageEmbedPickResult(Result<crate::io::ole_embed::EmbeddedImage, String>),
     /// INSERTOBJ: the picture chosen in the Insert Object window.
     InsertObjectResult(Result<crate::io::ole_embed::EmbeddedImage, String>),
-    // ── Missing fonts ─────────────────────────────────────────────────────
+    // â”€â”€ Missing fonts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Download the offered missing fonts from the community repository.
     MissingFontsDownload,
     /// Edit the custom font source URL in the missing-fonts prompt.
@@ -5516,7 +5518,7 @@ pub enum Message {
     /// Fonts fetched (or failed); payload lists (name, saved-path) pairs.
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     MissingFontsResult(Result<Vec<(String, std::path::PathBuf)>, String>),
-    // ── PDF Underlay ──────────────────────────────────────────────────────
+    // â”€â”€ PDF Underlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open file-picker dialog for PDFATTACH command (async).
     PdfAttachPick,
     /// PDFIMPORT File: pick the PDF to import.
@@ -5552,7 +5554,7 @@ pub enum Message {
     /// Result of the PDFATTACH file picker.
     PdfAttachPickResult(Result<(std::path::PathBuf, std::sync::Arc<Vec<u8>>), String>),
 
-    // ── XREF ──────────────────────────────────────────────────────────────
+    // â”€â”€ XREF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Open file-picker dialog for XATTACH command (async).
     XAttachPick,
     /// Result of the XATTACH file picker.
@@ -5591,14 +5593,14 @@ pub enum Message {
     XrefAttach(crate::ui::window::xref_attach::XrefAttachMsg),
     /// Result of the dialog's Browse picker.
     XrefAttachBrowseResult(Result<std::path::PathBuf, String>),
-    // ── WBLOCK ────────────────────────────────────────────────────────────
+    // â”€â”€ WBLOCK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Trigger the WBLOCK save dialog for `block_name` (or `*` = selection).
     WblockSave(String),
     /// Result of the WBLOCK save path dialog.
     WblockSaveResult(String, Option<std::path::PathBuf>),
     /// Background extraction/write completion.
     WblockWriteFinished(String, std::path::PathBuf, Result<(), String>),
-    // ── DATAEXTRACTION ────────────────────────────────────────────────────
+    // â”€â”€ DATAEXTRACTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     TableInsertStyle(String),
     /// Insert Table's button to the Table Style dialog.
     TableInsertManageStyles,
@@ -5623,7 +5625,7 @@ pub enum Message {
     DataExtractionBrowseSettings,
     DataExtractionBrowseSettingsResult(Option<std::path::PathBuf>),
     DataExtractionAddDrawings,
-    /// Picked source drawings — `Err` carries a pick/parse failure (web
+    /// Picked source drawings â€” `Err` carries a pick/parse failure (web
     /// parses each file on the worker at pick time).
     DataExtractionAddDrawingsResult(Result<Vec<std::path::PathBuf>, String>),
     DataExtractionAddFolder,
@@ -5639,29 +5641,29 @@ pub enum Message {
     DataExtractionSave(String),
     /// Path chosen (or None = cancelled).
     DataExtractionSaveResult(String, Option<std::path::PathBuf>),
-    // ── STL export ────────────────────────────────────────────────────────
+    // â”€â”€ STL export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Trigger STL export: collect meshes and show save dialog.
     StlExport,
     /// Callback after the user picks (or cancels) the STL save path.
     StlExportPath(Option<std::path::PathBuf>),
     StlExportFinished(std::path::PathBuf, Result<(), String>),
-    // ── STEP export ───────────────────────────────────────────────────────
+    // â”€â”€ STEP export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Trigger STEP AP203 export: show save dialog.
     StepExport,
     /// Callback after the user picks (or cancels) the STEP save path.
     StepExportPath(Option<std::path::PathBuf>),
     StepExportFinished(std::path::PathBuf, Result<(), String>),
-    // ── FBX export ────────────────────────────────────────────────────────
+    // â”€â”€ FBX export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Trigger FBX export: show save dialog.
     FbxExport,
     /// Callback after the user picks (or cancels) the FBX save path.
     FbxExportPath(Option<std::path::PathBuf>),
     FbxExportFinished(std::path::PathBuf, Result<(), String>),
-    // ── OBJ import ────────────────────────────────────────────────────────
+    // â”€â”€ OBJ import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// Trigger OBJ import: show open-file dialog.
     ObjImport,
     /// Callback after the user picks (or cancels) the OBJ file path.
-    /// Web never constructs it — the browser handle's bytes are read directly.
+    /// Web never constructs it â€” the browser handle's bytes are read directly.
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     ObjImportPath(Option<std::path::PathBuf>),
     ObjImportFinished(
@@ -5708,7 +5710,7 @@ impl OpenCADStudio {
             eprintln!("Unable to apply saved UI language: {error}");
         }
         // Boot with only the Welcome/Start tab. The user creates drawings
-        // explicitly (File → New); we never auto-spawn Drawing1.
+        // explicitly (File â†’ New); we never auto-spawn Drawing1.
         let start_tab = DocumentTab::new_start();
         let mut app = Self {
             control: control::State::new(),
@@ -6438,7 +6440,7 @@ impl OpenCADStudio {
         // Restore the consolidated user config (settings.json) into live state
         // so preferences, recents, status-bar layout, ribbon density and print
         // options survive across sessions (issue #68). `last_saved_config` is
-        // seeded below so the first change — not the boot — triggers a write.
+        // seeded below so the first change â€” not the boot â€” triggers a write.
         app.apply_config(config);
         crate::sys::startup_times::mark("App::new: apply_config done");
         // Load command aliases from ocad.pgp (writes the shipped default file
@@ -6473,7 +6475,7 @@ impl OpenCADStudio {
     pub(crate) fn new_for_test() -> Self {
         let mut app = Self::new();
         // `new` loads the real settings file, so without this every test runs
-        // against whatever the developer last set in the application — a suite
+        // against whatever the developer last set in the application â€” a suite
         // that passes on a clean machine and fails on a used one. It surfaced
         // when a persisted `GRIPOBJLIMIT` made the grip-limit test see 32767
         // where it expected the default, and the number of persisted settings
@@ -6523,7 +6525,7 @@ impl OpenCADStudio {
     }
 
     /// Boot function for `iced::daemon`: returns initial state plus a task that
-    /// opens the primary application window. Native only — the web build uses
+    /// opens the primary application window. Native only â€” the web build uses
     /// [`Self::boot_web`].
     #[cfg(not(target_arch = "wasm32"))]
     fn boot() -> (Self, Task<Message>) {
@@ -6560,8 +6562,8 @@ impl OpenCADStudio {
         );
         let focus_cmd = s.focus_cmd_input();
         // Startup configuration from the command line (see `cli`). File
-        // arguments — also how the OS file association launches us when
-        // drawings are double-clicked — go through `OpenExternal`, the same
+        // arguments â€” also how the OS file association launches us when
+        // drawings are double-clicked â€” go through `OpenExternal`, the same
         // door a second launch hands files to: it existence-checks each path,
         // skips one already open, and queues the rest behind the load in
         // flight. Handing them straight to `OpenRecent` would let each
@@ -6620,7 +6622,7 @@ impl OpenCADStudio {
         let patrons_fetch = Task::none();
         // Tutorial videos: show the on-disk cache instantly, refresh from the
         // live playlist in the background. Nothing ships in the binary. The
-        // fetch runs on its own OS thread — its several sequential HTTP
+        // fetch runs on its own OS thread â€” its several sequential HTTP
         // requests would otherwise sit on the async executor and hold up the
         // rest of the boot tasks (the Start page waited on it).
         #[cfg(not(target_arch = "wasm32"))]
@@ -6661,7 +6663,7 @@ impl OpenCADStudio {
         };
         #[cfg(target_arch = "wasm32")]
         let discussions_fetch = Task::none();
-        // Recent-file thumbnails: decoded off-thread — parsing every recent
+        // Recent-file thumbnails: decoded off-thread â€” parsing every recent
         // DWG's preview on the boot path held the first frame back.
         let thumbs_fetch = s.refresh_recent_thumbs();
         (
@@ -6723,12 +6725,12 @@ impl OpenCADStudio {
             crate::io::web_autosave::scan(),
             Message::WebAutosavesScanned,
         );
-        // URL deep link (`?file=…`): a shareable/embeddable link that opens a
+        // URL deep link (`?file=â€¦`): a shareable/embeddable link that opens a
         // drawing at boot. An http(s) URL is fetched with the same capped
         // streaming reader the remote-image fetch uses and handed to the
         // guarded drop-open queue; a bare name reads the OPFS recent copy the
         // same way `open_recent_web` does. Everything else (other schemes,
-        // non-.dwg/.dxf URL tails) is refused with a console warning — the
+        // non-.dwg/.dxf URL tails) is refused with a console warning â€” the
         // same scheme gate the image fetch applies. Pure parsing/validation
         // lives in `io::web_link` and is unit-tested there.
         let deep_link: Task<Message> = {
@@ -6739,7 +6741,7 @@ impl OpenCADStudio {
                 crate::io::web_link::ParsedLink::Target(target) => {
                     // Opening a URL from the query string is an implicit trust
                     // decision: name the origin before the fetch starts (info
-                    // only — the bytes still go through the parse + recovery
+                    // only â€” the bytes still go through the parse + recovery
                     // machinery like any other open). Same-origin links stay
                     // quiet: that drawing already comes from this site.
                     if let crate::io::web_link::LinkTarget::Url { url, name } = &target {
@@ -6747,7 +6749,7 @@ impl OpenCADStudio {
                             let origin = crate::io::web_link::display_origin(url)
                                 .unwrap_or_else(|| url.clone());
                             s.command_line
-                                .push_info(&format!("Opening {name} from {origin}…"));
+                                .push_info(&format!("Opening {name} from {origin}â€¦"));
                         }
                     }
                     Task::perform(crate::io::web_link::open_link(target), |outcome| {
@@ -6802,7 +6804,7 @@ pub fn run() -> iced::Result {
     .title(|state: &OpenCADStudio, window_id: window::Id| {
         let _ = window_id; // all dialogs are in-canvas modals now
         if let Some(tab) = state.tabs.get(state.active_tab) {
-            let dot = if tab.dirty { "● " } else { "" };
+            let dot = if tab.dirty { "â— " } else { "" };
             let name = tab.tab_display_name();
             format!(
                 "{}Open CAD Studio {} - {}",
@@ -6841,7 +6843,7 @@ pub fn run_web() -> iced::Result {
     // listeners are installed here and feed the control poll (#344).
     crate::io::web_drop::install();
     // Best-effort, fire-and-forget: ask the browser not to evict the origin's
-    // storage under pressure — settings (localStorage) and the OPFS recent
+    // storage under pressure â€” settings (localStorage) and the OPFS recent
     // copies / autosave snapshots live there. A denial changes nothing.
     wasm_bindgen_futures::spawn_local(async {
         if let Some(window) = web_sys::window() {
@@ -6869,3 +6871,4 @@ pub fn run_web() -> iced::Result {
     .font(iced_aw::ICED_AW_FONT_BYTES)
     .run()
 }
+

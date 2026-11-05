@@ -1,0 +1,9 @@
+﻿[package]
+name = "elec"
+version = "0.1.0"
+edition = "2021"
+description = "Electrical (ECAD) domain core: numbering, label templates, components and bills of material"
+license = "GPL-3.0-only"
+
+[dependencies]
+

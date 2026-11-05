@@ -1,4 +1,4 @@
-use super::*;
+﻿use super::*;
 
 impl OpenCADStudio {
     pub(in crate::app) fn reject_locked_edit(&mut self, i: usize, handle: Handle) -> bool {
@@ -6,7 +6,7 @@ impl OpenCADStudio {
             return false;
         };
         self.command_line.push_info(
-            crate::tf!("Object is on locked layer \"{layer}\" — unlock the layer to edit it.")
+            crate::tf!("Object is on locked layer \"{layer}\" â€” unlock the layer to edit it.")
                 .as_ref(),
         );
         true
@@ -221,7 +221,7 @@ impl OpenCADStudio {
         // API v11/v12: a custom plugin-grip drag cancels through the same
         // lifecycle exit every other interruption uses (Esc, another command
         // starting, tab switches): the owning plugin gets the cancel phase
-        // and drops its preview state with zero writes — the drawing stays
+        // and drops its preview state with zero writes â€” the drawing stays
         // byte-identical. While the drag's SETTLE is streaming (the plugin
         // write window), the watchdog owns the window instead: a cancel
         // would race the plugin's authoritative writes.
@@ -462,7 +462,7 @@ impl OpenCADStudio {
     /// Drive the active command's step machine with one [`StepInput`], then
     /// apply the result. This is the single entry point every input source
     /// (command line, headless, dynamic input, plugin API, viewport) funnels
-    /// through, so the routing from input → `on_*` method → `apply_cmd_result`
+    /// through, so the routing from input â†’ `on_*` method â†’ `apply_cmd_result`
     /// lives in exactly one place. No-op when no command is active.
     pub(in crate::app) fn feed_command(&mut self, input: StepInput) -> Task<Message> {
         self.feed_command_consumed(input).0
@@ -760,8 +760,8 @@ impl OpenCADStudio {
 
     /// `feed_command`, also reporting whether the step actually took the input.
     /// Only a `Text` token can come back unclaimed (`on_text_input` returning
-    /// `None`), which is what lets the caller read it as something else — a
-    /// typed distance, say — instead of guessing beforehand.
+    /// `None`), which is what lets the caller read it as something else â€” a
+    /// typed distance, say â€” instead of guessing beforehand.
     pub(in crate::app) fn feed_command_consumed(
         &mut self,
         input: StepInput,
@@ -1079,6 +1079,19 @@ impl OpenCADStudio {
             // Bare TABLE opens the Insert Table window; `TABLE INSERTROW 2`
             // edits the selected table.
             || tokens[0].eq_ignore_ascii_case("TABLE")
+            // ECAD commands that take a path act when they run, so they must not be
+            // probed bare first: the probe would render the report and then run it
+            // again with the argument, or write the same file twice.
+            || tokens[0].eq_ignore_ascii_case("ELECBOM")
+            || tokens[0].eq_ignore_ascii_case("ELECPART")
+            || tokens[0].eq_ignore_ascii_case("ELECREPORT")
+            || tokens[0].eq_ignore_ascii_case("ELECINSERT")
+            || tokens[0].eq_ignore_ascii_case("ELECLIB")
+            || tokens[0].eq_ignore_ascii_case("ELECNEW")
+            || tokens[0].eq_ignore_ascii_case("ELECPROJECT")
+            || tokens[0].eq_ignore_ascii_case("ELECPLACE")
+            || tokens[0].eq_ignore_ascii_case("ELECSETATTR")
+            || tokens[0].eq_ignore_ascii_case("ELECMAKESYMBOL")
         {
             return self.dispatch_command(cmd);
         }
@@ -1090,7 +1103,7 @@ impl OpenCADStudio {
         };
         self.clear_idle_tool_highlight();
         if self.tabs[i].active_cmd.is_none() {
-            // Not an interactive tool — an inline-argument command (`PDMODE 3`).
+            // Not an interactive tool â€” an inline-argument command (`PDMODE 3`).
             // The bare word only probed it: a step it kept without changing
             // anything is not an undo step of its own.
             self.drop_unchanged_pending_history(i);
@@ -1119,7 +1132,7 @@ impl OpenCADStudio {
     /// Two things happen when the tokens run out mid-way, both needed so a
     /// headless caller can tell what actually happened:
     ///
-    /// * If the in-place text editor took over (the `TEXT` content step — the
+    /// * If the in-place text editor took over (the `TEXT` content step â€” the
     ///   command itself has already ended by then, `active_cmd` is `None`), the
     ///   remaining tokens are that text: they are typed into the editor and
     ///   committed, the same messages the control surface's `text_input` /
@@ -1170,7 +1183,7 @@ impl OpenCADStudio {
             // commit *synchronously* so the outcome is observable: dispatching
             // `TextInlineOk` as a task would hide whether the entity was really
             // created, and the tail token would be counted as consumed either
-            // way — the caller would have no way to tell "text created" from
+            // way â€” the caller would have no way to tell "text created" from
             // "text silently dropped".
             if let Some(editor) = self.text_inline.as_mut() {
                 editor.value = tokens[consumed..].join(" ");
@@ -1267,7 +1280,7 @@ impl OpenCADStudio {
                 .copied()
                 .filter(|&h| self.tabs[i].scene.document.get_entity(h).is_some())
                 .collect(),
-            // Highest handle among the selectable wires of the current space —
+            // Highest handle among the selectable wires of the current space â€”
             // handles are handed out monotonically, so that is the most
             // recently created object.
             "L" | "LAST" => self.tabs[i]
@@ -1464,7 +1477,7 @@ impl OpenCADStudio {
             .as_ref()
             .is_some_and(|c| c.needs_entity_pick() || c.is_selection_gathering())
         {
-            // Option keywords take precedence over the handle reading —
+            // Option keywords take precedence over the handle reading â€”
             // "F"/"C"/"E" are valid hex, but during TRIM/EXTEND they are the
             // Fence/Crossing/Edge options (#336). Only an unconsumed token
             // falls through to the handle interpretation.
@@ -1565,7 +1578,7 @@ impl OpenCADStudio {
             return self.feed_command(StepInput::Point(wcs));
         } else {
             // The step reads the token first: at a great many point prompts a
-            // bare number is the step's own value, not a distance — ROTATE's
+            // bare number is the step's own value, not a distance â€” ROTATE's
             // angle, SCALE's factor, CIRCLE's radius. Only a token no step
             // claims becomes direct distance entry, measured along the cursor
             // direction from the command's anchor. Under a typed `<angle`
@@ -1650,3 +1663,10 @@ impl OpenCADStudio {
         self.run_command_line(trimmed)
     }
 }
+
+
+
+
+
+
+
