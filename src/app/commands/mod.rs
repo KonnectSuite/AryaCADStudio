@@ -1297,6 +1297,7 @@ inventory::submit!(crate::command::CommandRegistration {
         "ELECWIRENUMBER",
         "ELECTERMINALS",
         "ELECSIDES",
+        "ELECIO",
         "ELECXREF",
         "ELECPART",
         "ELECXREFWRITE",
@@ -1924,6 +1925,7 @@ mod ribbon_highlight_tests {
         assert_eq!(app.ribbon.active_tool(), None);
     }
 }
+
 
 
 

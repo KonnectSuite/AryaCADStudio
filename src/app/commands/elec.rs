@@ -2847,6 +2847,15 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         push(&mut insert, "DESC1", "PLC module", 1);
         for (point, address) in addresses.iter().enumerate() {
             push(&mut insert, &format!("ADDR{:02}", point + 1), address, point + 2);
+            // The pin's own coordinates, so a later pass can follow the wire from the point
+            // instead of guessing where the generated geometry put it.
+            let pin_y = y + (point as f64 + 0.5) * spacing;
+            push(
+                &mut insert,
+                &format!("X1TERM{:02}", point + 1),
+                &format!("{:.4},{:.4}", x - 0.15, pin_y),
+                point + 2,
+            );
         }
 
         self.push_undo_snapshot(i, "ELECPLC");
@@ -2913,6 +2922,177 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Some(out)
     }
 
+    /// `ELECIO` lists each PLC point with its address and what it is wired to.
+    ///
+    /// An address on its own is a label; what an electrician needs is "I0.3 goes to the
+    /// terminal strip on this sheet". `ELECPLC` records each pin's coordinates in
+    /// `X1TERMnn`/`X2TERMnn` (the same idea as the reference products' terminal-position
+    /// attributes), so this can follow the wire from the pin and name the devices on it.
+    pub(super) fn elec_io(&mut self, i: usize) -> Task<Message> {
+        use ::elec::geometry::{netlist_from_geometry, wire_rows, Point};
+
+        const TOLERANCE: f64 = 0.05;
+
+        let (wires, anchors) = self.elec_collect(i);
+        if wires.is_empty() {
+            self.command_line
+                .push_output("ELECIO: no wires on this drawing, so no point can be wired.");
+            return Task::none();
+        }
+
+        // Cluster wires by shared endpoints. A PLC pin is a connection point inside the
+        // symbol, not the symbol's insertion point, so the anchor-based netlist cannot see
+        // it; following the wire geometry finds the conductor the pin actually lands on.
+        let near = |a: (f64, f64), b: (f64, f64)| {
+            (a.0 - b.0).abs() <= TOLERANCE && (a.1 - b.1).abs() <= TOLERANCE
+        };
+        let mut cluster: Vec<usize> = (0..wires.len()).collect();
+        fn find(parent: &mut Vec<usize>, mut index: usize) -> usize {
+            while parent[index] != index {
+                parent[index] = parent[parent[index]];
+                index = parent[index];
+            }
+            index
+        }
+        for a in 0..wires.len() {
+            for b in (a + 1)..wires.len() {
+                let aw = &wires[a];
+                let bw = &wires[b];
+                let touches = near((aw.from.x, aw.from.y), (bw.from.x, bw.from.y))
+                    || near((aw.from.x, aw.from.y), (bw.to.x, bw.to.y))
+                    || near((aw.to.x, aw.to.y), (bw.from.x, bw.from.y))
+                    || near((aw.to.x, aw.to.y), (bw.to.x, bw.to.y));
+                if touches {
+                    let ra = find(&mut cluster, a);
+                    let rb = find(&mut cluster, b);
+                    if ra != rb {
+                        cluster[ra] = rb;
+                    }
+                }
+            }
+        }
+
+        // Resolve roots once, so the lookups below only read them.
+        let roots: Vec<usize> = (0..wires.len())
+            .map(|index| find(&mut cluster, index))
+            .collect();
+
+        // Devices sitting on a cluster: an anchor whose position matches a wire endpoint.
+        let devices_on = |root: usize| -> Vec<String> {
+            let mut names: Vec<String> = Vec::new();
+            for (index, wire) in wires.iter().enumerate() {
+                if roots[index] != root {
+                    continue;
+                }
+                for anchor in &anchors {
+                    let point = (anchor.at.x, anchor.at.y);
+                    if near(point, (wire.from.x, wire.from.y)) || near(point, (wire.to.x, wire.to.y)) {
+                        if !names.contains(&anchor.label) {
+                            names.push(anchor.label.clone());
+                        }
+                    }
+                }
+            }
+            names
+        };
+
+        let net_at = |x: f64, y: f64| -> Option<usize> {
+            (0..wires.len()).find(|index| {
+                let wire = &wires[*index];
+                near((x, y), (wire.from.x, wire.from.y)) || near((x, y), (wire.to.x, wire.to.y))
+            })
+        };
+
+        let modules: Vec<(String, Vec<(String, Option<(f64, f64)>)>)> = {
+            let doc = &self.tabs[i].scene.document;
+            let model_space = doc.header.model_space_block_handle;
+            doc.entities()
+                .filter(|entity| entity.common().owner_handle == model_space)
+                .filter_map(|entity| match entity {
+                    codec::EntityType::Insert(insert)
+                        if insert.block_name.to_ascii_uppercase().starts_with("PLC-") =>
+                    {
+                        let mut tag = String::new();
+                        for attribute in &insert.attributes {
+                            if is_tag_attribute(&attribute.tag) && tag.is_empty() {
+                                tag = attribute.value.trim().to_string();
+                            }
+                        }
+                        let mut points: Vec<(String, Option<(f64, f64)>)> = Vec::new();
+                        for attribute in &insert.attributes {
+                            let name = attribute.tag.trim().to_ascii_uppercase();
+                            if !name.starts_with("ADDR") {
+                                continue;
+                            }
+                            let suffix = &name[4..];
+                            let address = attribute.value.trim().to_string();
+                            let pin = insert
+                                .attributes
+                                .iter()
+                                .find(|other| {
+                                    other
+                                        .tag
+                                        .trim()
+                                        .eq_ignore_ascii_case(&format!("X1TERM{suffix}"))
+                                })
+                                .and_then(|other| {
+                                    let (x, y) = other.value.split_once(',')?;
+                                    Some((
+                                        x.trim().parse::<f64>().ok()?,
+                                        y.trim().parse::<f64>().ok()?,
+                                    ))
+                                });
+                            points.push((address, pin));
+                        }
+                        Some((tag, points))
+                    }
+                    _ => None,
+                })
+                .collect()
+        };
+
+        if modules.is_empty() {
+            self.command_line
+                .push_output("ELECIO: no PLC modules on this drawing (place one with ELECPLC).");
+            return Task::none();
+        }
+
+        let mut total = 0usize;
+        let mut wired = 0usize;
+        for (tag, points) in &modules {
+            let header = format!("  {tag} ({} point(s)):", points.len());
+            self.command_line.push_output(&header);
+            for (address, pin) in points {
+                total += 1;
+                let target = pin.and_then(|(x, y)| net_at(x, y));
+                match target {
+                    Some(index) => {
+                        wired += 1;
+                        let root = find(&mut cluster, index);
+                        let peers = devices_on(root);
+                        let line = if peers.is_empty() {
+                            format!("    {address} -> wired, no device on that conductor")
+                        } else {
+                            format!("    {address} -> {}", peers.join(", "))
+                        };
+                        self.command_line.push_output(&line);
+                    }
+                    None => {
+                        let line = format!("    {address} -> not wired");
+                        self.command_line.push_output(&line);
+                    }
+                }
+            }
+        }
+
+        let summary = format!(
+            "ELECIO: {} module(s), {total} point(s), {wired} wired.",
+            modules.len()
+        );
+        self.command_line.push_output(&summary);
+        Task::none()
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -2923,6 +3103,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             "ELECWIRENUMBER" => Some(self.elec_wirenumber(i)),
             "ELECTERMINALS" => Some(self.elec_terminals(i)),
             "ELECTSIDES" => Some(self.elec_sides(i)),
+            "ELECIO" => Some(self.elec_io(i)),
             // The palette is UI, not a drawing edit: it opens the modal that lists the
             // loaded library, and a click in it runs this same ELECINSERT command.
             "ELECMAKESYMBOL" => {
