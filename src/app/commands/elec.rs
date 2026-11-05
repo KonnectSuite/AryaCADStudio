@@ -79,6 +79,15 @@ struct LibraryEntry {
     scale: f64,
 }
 
+/// Folder the last `ELECPROJECT` scanned, so module addressing can continue the
+/// project's I/O sequence instead of restarting it on every sheet.
+static PROJECT_DIR: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
+    std::sync::OnceLock::new();
+
+fn project_dir() -> &'static std::sync::RwLock<Option<std::path::PathBuf>> {
+    PROJECT_DIR.get_or_init(|| std::sync::RwLock::new(None))
+}
+
 static LIBRARY_INDEX: std::sync::OnceLock<
     std::sync::RwLock<std::collections::BTreeMap<String, LibraryEntry>>,
 > = std::sync::OnceLock::new();
@@ -2587,6 +2596,9 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             return Task::none();
         }
 
+        if let Ok(mut guard) = project_dir().write() {
+            *guard = Some(directory.to_path_buf());
+        }
         let mut sheets: Vec<std::path::PathBuf> = Vec::new();
         if let Ok(entries) = std::fs::read_dir(directory) {
             for entry in entries.flatten() {
@@ -3093,6 +3105,110 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Task::none()
     }
 
+    /// `ELECPLCNEXT <tag> <points> [prefix] [x,y]` places a module continuing the project's
+    /// I/O sequence.
+    ///
+    /// On a real drawing set the second sheet continues where the first stopped - `I1.0`
+    /// after `I0.7`, not another `I0.0`. That needs the other sheets, so this scans the
+    /// project folder `ELECPROJECT` remembered and takes the highest address already used.
+    pub(super) fn elec_plc_next(
+        &mut self,
+        i: usize,
+        tag: &str,
+        points: usize,
+        prefix: &str,
+        at: Option<(f64, f64)>,
+    ) -> Task<Message> {
+        let prefix = if prefix.trim().is_empty() {
+            "I"
+        } else {
+            prefix.trim()
+        };
+
+        let mut highest: Option<(usize, usize)> = None;
+        let mut note: Option<String> = None;
+
+        // Addresses already on other sheets, from the remembered project folder.
+        if let Some(folder) = project_dir().read().ok().and_then(|guard| guard.clone()) {
+            if let Ok(entries) = std::fs::read_dir(&folder) {
+                let mut scanned = 0usize;
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if !path
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
+                    {
+                        continue;
+                    }
+                    let Ok(document) = crate::io::load_file(&path) else {
+                        continue;
+                    };
+                    scanned += 1;
+                    for component in Self::components_of(&document) {
+                        for (name, value) in component.attributes.iter() {
+                            if !name.trim().to_ascii_uppercase().starts_with("ADDR") {
+                                continue;
+                            }
+                            if let Some(position) = Self::plc_parse_address(value, prefix) {
+                                highest = Some(match highest {
+                                    Some(current) if current >= position => current,
+                                    _ => position,
+                                });
+                            }
+                        }
+                    }
+                }
+                if scanned > 0 {
+                    note = Some(format!("{scanned} sheet(s) in the project"));
+                }
+            }
+        }
+
+        // Addresses already in this drawing.
+        for component in Self::components_of(&self.tabs[i].scene.document) {
+            for (name, value) in component.attributes.iter() {
+                if !name.trim().to_ascii_uppercase().starts_with("ADDR") {
+                    continue;
+                }
+                if let Some(position) = Self::plc_parse_address(value, prefix) {
+                    highest = Some(match highest {
+                        Some(current) if current >= position => current,
+                        _ => position,
+                    });
+                }
+            }
+        }
+
+        let base = match highest {
+            Some((byte, bit)) => {
+                let (next_byte, next_bit) = if bit >= 7 { (byte + 1, 0) } else { (byte, bit + 1) };
+                format!("{prefix}{next_byte}.{next_bit}")
+            }
+            None => format!("{prefix}0.0"),
+        };
+
+        let detail = match note {
+            Some(text) => format!("continuing after the highest address in the {text}"),
+            None => "starting the sequence (no project folder remembered)".to_string(),
+        };
+        let message = format!("ELECPLCNEXT: {detail}; base {base}.");
+        self.command_line.push_output(&message);
+        self.elec_plc(i, tag, points, &base, at)
+    }
+
+    /// Parses `I1.3` into `(1, 3)` when the prefix matches.
+    fn plc_parse_address(value: &str, prefix: &str) -> Option<(usize, usize)> {
+        let value = value.trim();
+        let rest = value.strip_prefix(prefix)?;
+        let (byte, bit) = rest.split_once('.')?;
+        let byte = byte.parse::<usize>().ok()?;
+        let bit = bit.parse::<usize>().ok()?;
+        if bit > 7 {
+            return None;
+        }
+        Some((byte, bit))
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -3194,6 +3310,28 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 }
                 if cmd == "ELECNEW" {
                     return Some(self.elec_new(i, None));
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPLCNEXT ") {
+                    // ELECPLCNEXT <tag> <points> [prefix] [x,y]
+                    let mut words = argument.split_whitespace();
+                    let tag = words.next().unwrap_or("");
+                    let points = words
+                        .next()
+                        .and_then(|value| value.parse::<usize>().ok())
+                        .unwrap_or(0);
+                    let mut prefix = "I";
+                    let mut at = None;
+                    for word in words {
+                        if let Some((x, y)) = word.split_once(',') {
+                            at = Some((
+                                x.trim().parse::<f64>().unwrap_or(0.0),
+                                y.trim().parse::<f64>().unwrap_or(0.0),
+                            ));
+                        } else if word.len() == 1 {
+                            prefix = word;
+                        }
+                    }
+                    return Some(self.elec_plc_next(i, tag, points, prefix, at));
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECPLC ") {
                     // ELECPLC <tag> <points> <base-address> [x,y]

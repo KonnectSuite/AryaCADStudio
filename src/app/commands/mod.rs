@@ -1308,6 +1308,7 @@ inventory::submit!(crate::command::CommandRegistration {
         "ELECSETATTR",
         "ELECNEW",
         "ELECPLC",
+        "ELECPLCNEXT",
         "ELECPROJECT",
         "ELECWIRE",
         "ELECMAKESYMBOL",
@@ -1925,6 +1926,7 @@ mod ribbon_highlight_tests {
         assert_eq!(app.ribbon.active_tool(), None);
     }
 }
+
 
 
 
