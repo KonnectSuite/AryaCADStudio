@@ -3567,6 +3567,250 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         Ok(sheets)
     }
 
+    /// `ELECPROJNUM [apply]` numbers devices across the whole project, sheet by sheet.
+    ///
+    /// The per-drawing `ELECNUMBER` cannot do this: a device with parts on two sheets must
+    /// get one number, and the sequence must stay continuous across the set. This walks the
+    /// project in order, assigns one number per device, and (only with `apply`) writes the
+    /// tags back, copying each sheet to `.bak` first.
+    pub(super) fn elec_proj_number(&mut self, dry_run: bool) -> Task<Message> {
+        use ::elec::{default_prefix, infer_tag_prefix, NumberingFormat};
+
+        let sheets = Self::project_sheet_list();
+        if sheets.is_empty() {
+            self.command_line.push_output(
+                "ELECPROJNUM: no project open (ELECPROJNEW/ELECPROJOPEN) and no folder scanned.",
+            );
+            return Task::none();
+        }
+
+        let class_of = |block: &str| -> String {
+            library_index()
+                .read()
+                .ok()
+                .and_then(|index| {
+                    index
+                        .get(&block.to_ascii_uppercase())
+                        .map(|entry| entry.class.clone())
+                })
+                .unwrap_or_else(|| block.to_string())
+        };
+
+        // Pass 1: every device, in sheet order then reading order. A tag seen again on a
+        // later sheet is the same device and keeps its identity.
+        struct Device {
+            prefix: String,
+            tag: String,
+            sheets: Vec<String>,
+        }
+        let mut devices: Vec<Device> = Vec::new();
+        let mut seen: BTreeMap<(String, String), usize> = BTreeMap::new();
+        let mut duplicates: Vec<String> = Vec::new();
+
+        for sheet in &sheets {
+            let Ok(document) = crate::io::load_file(&sheet.path) else {
+                continue;
+            };
+            let label = if sheet.number.is_empty() {
+                sheet
+                    .path
+                    .file_stem()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("?")
+                    .to_string()
+            } else {
+                sheet.number.clone()
+            };
+            let model_space = document.header.model_space_block_handle;
+            let mut on_sheet: Vec<(String, String, f64, f64)> = Vec::new();
+            for entity in document.entities() {
+                if entity.common().owner_handle != model_space {
+                    continue;
+                }
+                let codec::EntityType::Insert(insert) = entity else {
+                    continue;
+                };
+                if insert.attributes.is_empty() || is_setup_block(&insert.block_name) {
+                    continue;
+                }
+                let tag = insert
+                    .attributes
+                    .iter()
+                    .find(|attribute| is_tag_attribute(&attribute.tag))
+                    .map(|attribute| attribute.value.trim().to_string())
+                    .unwrap_or_default();
+                if tag.is_empty() {
+                    continue;
+                }
+                let class = class_of(&insert.block_name);
+                let prefix = infer_tag_prefix(&[tag.as_str()]).unwrap_or_else(|| default_prefix(&class));
+                on_sheet.push((prefix, tag, insert.insert_point.x, insert.insert_point.y));
+            }
+            on_sheet.sort_by_key(|(_, _, x, y)| ::elec::reading_order_key(*x, *y));
+            for (prefix, tag, _, _) in on_sheet {
+                let key = (prefix.clone(), tag.to_ascii_uppercase());
+                match seen.get(&key) {
+                    Some(index) => {
+                        let device: &mut Device = &mut devices[*index];
+                        if !device.sheets.contains(&label) {
+                            device.sheets.push(label.clone());
+                        }
+                    }
+                    None => {
+                        seen.insert(key, devices.len());
+                        devices.push(Device {
+                            prefix,
+                            tag,
+                            sheets: vec![label.clone()],
+                        });
+                    }
+                }
+            }
+        }
+
+        if devices.is_empty() {
+            self.command_line
+                .push_output("ELECPROJNUM: no tagged devices across the project.");
+            return Task::none();
+        }
+
+        // Pass 2: assign numbers per prefix, in encounter order.
+        let mut counters: BTreeMap<String, usize> = BTreeMap::new();
+        let mut mapping: BTreeMap<String, String> = BTreeMap::new();
+        let mut plan: Vec<String> = Vec::new();
+        for device in &devices {
+            let next = counters.entry(device.prefix.clone()).or_insert(0);
+            *next += 1;
+            let format = NumberingFormat::tag(&device.prefix);
+            // `value` is 0-based with a start of 1, so the first device is ordinal 0.
+            let value = format.value((*next - 1) as u32);
+            mapping.insert(device.tag.clone(), value.clone());
+            if value != device.tag {
+                plan.push(format!(
+                    "    {} -> {value}  (on {})",
+                    device.tag,
+                    device.sheets.join(", ")
+                ));
+            }
+            if device.sheets.len() > 1 {
+                duplicates.push(device.tag.clone());
+            }
+        }
+
+        let changed = plan.len();
+        let verb = if dry_run { "would renumber" } else { "renumbered" };
+        let summary = format!(
+            "ELECPROJNUM: {} sheet(s), {} device(s); {verb} {changed}.",
+            sheets.len(),
+            devices.len()
+        );
+        self.command_line.push_output(&summary);
+        for line in plan.iter().take(40) {
+            self.command_line.push_output(line);
+        }
+        if plan.len() > 40 {
+            let line = format!("    ... and {} more", plan.len() - 40);
+            self.command_line.push_output(&line);
+        }
+        if !duplicates.is_empty() {
+            let line = format!("  devices spanning sheets: {}", duplicates.join(", "));
+            self.command_line.push_output(&line);
+        }
+
+        if dry_run || changed == 0 {
+            if dry_run {
+                self.command_line
+                    .push_output("  (preview only; run ELECPROJNUM apply to write)");
+            }
+            return Task::none();
+        }
+
+        // Pass 3: write the tags back, one sheet at a time, keeping a .bak beside each.
+        let mut written = 0usize;
+        let mut failed = 0usize;
+        for sheet in &sheets {
+            let Ok(mut document) = crate::io::load_file(&sheet.path) else {
+                failed += 1;
+                continue;
+            };
+            let model_space = document.header.model_space_block_handle;
+            let handles: Vec<codec::Handle> = document
+                .entities()
+                .filter(|entity| entity.common().owner_handle == model_space)
+                .filter_map(|entity| match entity {
+                    codec::EntityType::Insert(insert)
+                        if !insert.attributes.is_empty()
+                            && !is_setup_block(&insert.block_name) =>
+                    {
+                        Some(insert.common.handle)
+                    }
+                    _ => None,
+                })
+                .collect();
+            let mut touched = 0usize;
+            for handle in handles {
+                let Some(entity) = document.get_entity_mut(handle) else {
+                    continue;
+                };
+                let codec::EntityType::Insert(insert) = entity else {
+                    continue;
+                };
+                let current = insert
+                    .attributes
+                    .iter()
+                    .find(|attribute| is_tag_attribute(&attribute.tag))
+                    .map(|attribute| attribute.value.trim().to_string())
+                    .unwrap_or_default();
+                let Some(next) = mapping.get(&current) else {
+                    continue;
+                };
+                if next == &current {
+                    continue;
+                }
+                let next = next.clone();
+                for attribute in insert.attributes.iter_mut() {
+                    if is_tag_attribute(&attribute.tag) {
+                        attribute.value = next.clone();
+                    }
+                }
+                touched += 1;
+            }
+            if touched == 0 {
+                continue;
+            }
+            let backup = sheet.path.with_extension("dxf.bak");
+            let _ = std::fs::copy(&sheet.path, &backup);
+            match crate::io::save(&document, &sheet.path) {
+                Ok(()) => written += touched,
+                Err(_) => failed += 1,
+            }
+        }
+
+        let message = format!(
+            "  wrote {written} tag(s) across {} sheet(s); {failed} failed. Sheets are backed up as .dxf.bak; reopen any drawing you have open.",
+            sheets.len()
+        );
+        self.command_line.push_output(&message);
+        Task::none()
+    }
+
+    /// The project's sheets with their metadata: the open project file, else the folder.
+    fn project_sheet_list() -> Vec<ProjectSheet> {
+        if let Some(file) = project_file().read().ok().and_then(|guard| guard.clone()) {
+            if let Ok(sheets) = Self::read_project(&file.display().to_string()) {
+                return sheets;
+            }
+        }
+        Self::project_sheets()
+            .into_iter()
+            .map(|path| ProjectSheet {
+                path,
+                number: String::new(),
+                title: String::new(),
+            })
+            .collect()
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -3730,6 +3974,13 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                         ))
                     });
                     return Some(self.elec_plc(i, tag, points, base, at));
+                }
+                if cmd == "ELECPROJNUM" {
+                    return Some(self.elec_proj_number(true));
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECPROJNUM ") {
+                    let apply = argument.trim().eq_ignore_ascii_case("apply");
+                    return Some(self.elec_proj_number(!apply));
                 }
                 if cmd == "ELECPROJECT" {
                     // No folder: read the open project file.
