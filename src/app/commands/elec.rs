@@ -3811,12 +3811,6 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             .collect()
     }
 
-    /// `ELECSHEET [A4|A3|A2|A1] [title]` draws a drawing frame and title block.
-    ///
-    /// The drawings imported from the old system carried no frame at all - the frame came
-    /// from page setup at plot time - so a printed sheet had no border, no sheet number and
-    /// no title. This draws them into the drawing, taking the number and title from the
-    /// project file when the sheet is part of one.
     pub(super) fn elec_sheet(&mut self, i: usize, size: &str, title: &str) -> Task<Message> {
         let (paper_w, paper_h) = match size.trim().to_ascii_uppercase().as_str() {
             "A3" => (420.0_f64, 297.0_f64),
@@ -3825,6 +3819,83 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             "A0" => (1189.0, 841.0),
             _ => (297.0, 210.0),
         };
+
+        // The frame has to fit the drawing, not the other way round: the imported sheets hold
+        // roughly 35x25 units of content, and a frame drawn at 297x210 mm in those units is
+        // eight times too big. Scale the paper to the content's own extent.
+        let mut min_x = f64::MAX;
+        let mut min_y = f64::MAX;
+        let mut max_x = f64::MIN;
+        let mut max_y = f64::MIN;
+        {
+            let doc = &self.tabs[i].scene.document;
+            let model_space = doc.header.model_space_block_handle;
+            let mut take = |x: f64, y: f64| {
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            };
+            for entity in doc.entities() {
+                if entity.common().owner_handle != model_space {
+                    continue;
+                }
+                // Ignore an existing frame, so running ELECSHEET twice refits rather than
+                // measuring its own borders.
+                if entity.common().layer.as_str() == "ELEC-FRAME" {
+                    continue;
+                }
+                match entity {
+                    codec::EntityType::Line(line) => {
+                        take(line.start.x, line.start.y);
+                        take(line.end.x, line.end.y);
+                    }
+                    codec::EntityType::Circle(circle) => {
+                        let r = circle.radius.abs();
+                        take(circle.center.x - r, circle.center.y - r);
+                        take(circle.center.x + r, circle.center.y + r);
+                    }
+                    codec::EntityType::Arc(arc) => {
+                        let r = arc.radius.abs();
+                        take(arc.center.x - r, arc.center.y - r);
+                        take(arc.center.x + r, arc.center.y + r);
+                    }
+                    codec::EntityType::Text(text) => {
+                        take(text.insertion_point.x, text.insertion_point.y);
+                    }
+                    codec::EntityType::Insert(insert) => {
+                        take(insert.insert_point.x, insert.insert_point.y);
+                    }
+                    codec::EntityType::LwPolyline(polyline) => {
+                        for vertex in &polyline.vertices {
+                            take(vertex.location.x, vertex.location.y);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let (centre_x, centre_y, scale) = if min_x < max_x && min_y < max_y {
+            let width = (max_x - min_x).max(1e-9);
+            let height = (max_y - min_y).max(1e-9);
+            // 15% breathing room around the content.
+            let scale = ((width * 1.15) / paper_w).max((height * 1.15) / paper_h);
+            (
+                (min_x + max_x) * 0.5,
+                (min_y + max_y) * 0.5,
+                scale,
+            )
+        } else {
+            // Empty drawing: draw a real sheet at 1:1 around the origin.
+            (paper_w * 0.5, paper_h * 0.5, 1.0)
+        };
+
+        let frame_w = paper_w * scale;
+        let frame_h = paper_h * scale;
+        let origin_x = centre_x - frame_w * 0.5;
+        let origin_y = centre_y - frame_h * 0.5;
+        let mm = |value: f64| value * scale;
 
         // What the title block says about this sheet: project metadata if this file is in
         // the open project, otherwise whatever the caller supplied.
@@ -3865,52 +3936,52 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         let mut lines: Vec<(f64, f64, f64, f64)> = Vec::new();
         let mut texts: Vec<(String, f64, f64, f64)> = Vec::new();
 
-        // Border and inner frame.
-        lines.push((0.0, 0.0, paper_w, 0.0));
-        lines.push((paper_w, 0.0, paper_w, paper_h));
-        lines.push((paper_w, paper_h, 0.0, paper_h));
-        lines.push((0.0, paper_h, 0.0, 0.0));
-        let inset = 10.0;
-        lines.push((inset, inset, paper_w - inset, inset));
-        lines.push((paper_w - inset, inset, paper_w - inset, paper_h - inset));
-        lines.push((paper_w - inset, paper_h - inset, inset, paper_h - inset));
-        lines.push((inset, paper_h - inset, inset, inset));
+        // Paper edge and inner frame, in drawing units.
+        let (left_edge, bottom_edge) = (origin_x, origin_y);
+        let (right_edge, top_edge) = (origin_x + frame_w, origin_y + frame_h);
+        lines.push((left_edge, bottom_edge, right_edge, bottom_edge));
+        lines.push((right_edge, bottom_edge, right_edge, top_edge));
+        lines.push((right_edge, top_edge, left_edge, top_edge));
+        lines.push((left_edge, top_edge, left_edge, bottom_edge));
+        let inset = mm(10.0);
+        lines.push((left_edge + inset, bottom_edge + inset, right_edge - inset, bottom_edge + inset));
+        lines.push((right_edge - inset, bottom_edge + inset, right_edge - inset, top_edge - inset));
+        lines.push((right_edge - inset, top_edge - inset, left_edge + inset, top_edge - inset));
+        lines.push((left_edge + inset, top_edge - inset, left_edge + inset, bottom_edge + inset));
 
         // Title block, bottom right inside the frame.
-        let block_w = 120.0_f64;
-        let block_h = 32.0_f64;
-        let left = paper_w - inset - block_w;
-        let bottom = inset;
-        lines.push((left, bottom, left + block_w, bottom));
-        lines.push((left + block_w, bottom, left + block_w, bottom + block_h));
-        lines.push((left + block_w, bottom + block_h, left, bottom + block_h));
-        lines.push((left, bottom + block_h, left, bottom));
-        // Rows: sheet number strip, title, project, footer.
-        let row1 = bottom + 20.0;
-        let row2 = bottom + 12.0;
-        let row3 = bottom + 6.0;
-        lines.push((left, row1, left + block_w, row1));
-        lines.push((left, row2, left + block_w, row2));
-        lines.push((left, row3, left + block_w, row3));
-        // Vertical divider in the footer row for date / size.
-        let split = left + block_w * 0.65;
-        lines.push((split, bottom, split, row3));
+        let block_w = mm(120.0);
+        let block_h = mm(32.0);
+        let block_left = right_edge - inset - block_w;
+        let block_bottom = bottom_edge + inset;
+        lines.push((block_left, block_bottom, block_left + block_w, block_bottom));
+        lines.push((block_left + block_w, block_bottom, block_left + block_w, block_bottom + block_h));
+        lines.push((block_left + block_w, block_bottom + block_h, block_left, block_bottom + block_h));
+        lines.push((block_left, block_bottom + block_h, block_left, block_bottom));
+        let row1 = block_bottom + mm(20.0);
+        let row2 = block_bottom + mm(12.0);
+        let row3 = block_bottom + mm(6.0);
+        lines.push((block_left, row1, block_left + block_w, row1));
+        lines.push((block_left, row2, block_left + block_w, row2));
+        lines.push((block_left, row3, block_left + block_w, row3));
+        let split = block_left + block_w * 0.65;
+        lines.push((split, block_bottom, split, row3));
 
         let number_text = if sheet_number.is_empty() {
             "SHEET".to_string()
         } else {
             format!("SHEET {sheet_number}")
         };
-        texts.push((number_text, left + 2.0, bottom + 23.0, 6.0));
+        texts.push((number_text, block_left + mm(2.0), block_bottom + mm(23.0), mm(6.0)));
         texts.push((
             if sheet_title.is_empty() {
                 "UNTITLED".to_string()
             } else {
                 sheet_title.to_uppercase()
             },
-            left + 2.0,
-            bottom + 14.0,
-            4.0,
+            block_left + mm(2.0),
+            block_bottom + mm(14.0),
+            mm(4.0),
         ));
         texts.push((
             if project_name.is_empty() {
@@ -3918,9 +3989,9 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             } else {
                 project_name.to_uppercase()
             },
-            left + 2.0,
-            bottom + 8.0,
-            3.0,
+            block_left + mm(2.0),
+            block_bottom + mm(8.0),
+            mm(3.0),
         ));
         let size_label = format!(
             "{}  {} x {}",
@@ -3928,8 +3999,13 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             paper_w as i64,
             paper_h as i64
         );
-        texts.push((size_label, split + 2.0, bottom + 2.0, 2.5));
-        texts.push(("1:1".to_string(), left + 2.0, bottom + 2.0, 2.5));
+        texts.push((size_label, split + mm(2.0), block_bottom + mm(2.0), mm(2.5)));
+        texts.push((
+            format!("1:{}", if scale > 0.0 { (1.0 / scale).round() as i64 } else { 1 }),
+            block_left + mm(2.0),
+            block_bottom + mm(2.0),
+            mm(2.5),
+        ));
 
         self.push_undo_snapshot(i, "ELECSHEET");
         for (ax, ay, bx, by) in lines {
@@ -3951,14 +4027,16 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         self.tabs[i].dirty = true;
 
         let summary = format!(
-            "ELECSHEET: {} frame {paper_w:.0}x{paper_h:.0} on the {inset:.0} margin; title block shows sheet {} / {}.",
+            "ELECSHEET: {} fitted to the drawing at 1:{} ({frame_w:.2}x{frame_h:.2} units); title block shows sheet {} / {}.",
             size.trim().to_ascii_uppercase(),
+            if scale > 0.0 { (1.0 / scale).round() as i64 } else { 1 },
             if sheet_number.is_empty() { "-" } else { &sheet_number },
             if sheet_title.is_empty() { "-" } else { &sheet_title }
         );
         self.command_line.push_output(&summary);
         Task::none()
     }
+
 
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
