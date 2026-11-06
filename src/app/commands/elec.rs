@@ -84,6 +84,14 @@ struct LibraryEntry {
 static PROJECT_DIR: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
     std::sync::OnceLock::new();
 
+/// One drawing in a project: where it is, and the metadata the project file gives it.
+#[derive(Debug, Clone)]
+struct ProjectSheet {
+    path: std::path::PathBuf,
+    number: String,
+    title: String,
+}
+
 /// The project file currently open, if any.
 static PROJECT_FILE: std::sync::OnceLock<std::sync::RwLock<Option<std::path::PathBuf>>> =
     std::sync::OnceLock::new();
@@ -2598,7 +2606,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     /// fixture.
     pub(super) fn elec_project(&mut self, folder: Option<&str>, out_path: Option<&str>) -> Task<Message> {
         // With no folder argument the open project file decides which sheets are read.
-        let mut sheets: Vec<std::path::PathBuf> = Vec::new();
+        let mut sheets: Vec<ProjectSheet> = Vec::new();
         if let Some(folder) = folder {
             let directory = std::path::Path::new(folder);
             if !directory.is_dir() {
@@ -2606,6 +2614,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 self.command_line.push_output(&message);
                 return Task::none();
             }
+            let mut paths: Vec<std::path::PathBuf> = Vec::new();
             if let Ok(entries) = std::fs::read_dir(directory) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -2613,24 +2622,38 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                         .extension()
                         .is_some_and(|ext| ext.eq_ignore_ascii_case("dxf"))
                     {
-                        sheets.push(path);
+                        paths.push(path);
                     }
                 }
             }
+            paths.sort();
+            sheets = paths
+                .into_iter()
+                .map(|path| ProjectSheet {
+                    path,
+                    number: String::new(),
+                    title: String::new(),
+                })
+                .collect();
             if let Ok(mut guard) = project_dir().write() {
                 *guard = Some(directory.to_path_buf());
             }
-        } else {
-            sheets = Self::project_sheets();
-            if sheets.is_empty() {
-                self.command_line.push_output(
-                    "ELECPROJECT: no project open (ELECPROJNEW/ELECPROJOPEN) and no folder given.",
-                );
-                return Task::none();
+        } else if let Some(file) = project_file().read().ok().and_then(|guard| guard.clone()) {
+            match Self::read_project(&file.display().to_string()) {
+                Ok(list) => sheets = list,
+                Err(error) => {
+                    let message = format!("ELECPROJECT: {error}");
+                    self.command_line.push_output(&message);
+                    return Task::none();
+                }
             }
+        } else {
+            self.command_line.push_output(
+                "ELECPROJECT: no project open (ELECPROJNEW/ELECPROJOPEN) and no folder given.",
+            );
+            return Task::none();
         }
 
-        sheets.sort();
         if sheets.is_empty() {
             let message = format!("ELECPROJECT: no .dxf drawings in {}." , folder.unwrap_or("the project"));
             self.command_line.push_output(&message);
@@ -2647,17 +2670,26 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
         // Sheet -> how many components it contributed, for the workbook's sheet summary.
         let mut per_sheet: BTreeMap<String, usize> = BTreeMap::new();
 
-        for path in &sheets {
-            let Ok(document) = crate::io::load_file(path) else {
+        for entry_sheet in &sheets {
+            let Ok(document) = crate::io::load_file(&entry_sheet.path) else {
                 failed += 1;
                 continue;
             };
             scanned += 1;
-            let sheet = path
-                .file_stem()
-                .and_then(|name| name.to_str())
-                .unwrap_or("?")
-                .to_string();
+            // The project's own number and title identify the sheet; the file name is the
+            // fallback when the project file does not supply them.
+            let sheet = if entry_sheet.number.is_empty() {
+                entry_sheet
+                    .path
+                    .file_stem()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("?")
+                    .to_string()
+            } else if entry_sheet.title.is_empty() {
+                entry_sheet.number.clone()
+            } else {
+                format!("{} {}", entry_sheet.number, entry_sheet.title)
+            };
             let mut on_this_sheet = 0usize;
             for component in Self::components_of(&document) {
                 components_total += 1;
@@ -3399,7 +3431,13 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 );
                 self.command_line.push_output(&message);
                 for (index, sheet) in sheets.iter().enumerate().take(10) {
-                    let line = format!("  {:>3}  {}", index + 1, sheet.display());
+                    let label = if sheet.number.is_empty() {
+                        format!("{}", index + 1)
+                    } else {
+                        sheet.number.clone()
+                    };
+                    let title = if sheet.title.is_empty() { String::new() } else { format!("  {}", sheet.title) };
+                    let line = format!("  {label:>3}  {}{title}", sheet.path.display());
                     self.command_line.push_output(&line);
                 }
                 if sheets.len() > 10 {
@@ -3427,7 +3465,13 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 let message = format!("ELECPROJLIST: {} - {} sheet(s).", path.display(), sheets.len());
                 self.command_line.push_output(&message);
                 for (index, sheet) in sheets.iter().enumerate().take(20) {
-                    let line = format!("  {:>3}  {}", index + 1, sheet.display());
+                    let label = if sheet.number.is_empty() {
+                        format!("{}", index + 1)
+                    } else {
+                        sheet.number.clone()
+                    };
+                    let title = if sheet.title.is_empty() { String::new() } else { format!("  {}", sheet.title) };
+                    let line = format!("  {label:>3}  {}{title}", sheet.path.display());
                     self.command_line.push_output(&line);
                 }
             }
@@ -3447,7 +3491,7 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     fn project_sheets() -> Vec<std::path::PathBuf> {
         if let Some(file) = project_file().read().ok().and_then(|guard| guard.clone()) {
             if let Ok(sheets) = Self::read_project(&file.display().to_string()) {
-                return sheets;
+                return sheets.into_iter().map(|sheet| sheet.path).collect();
             }
         }
         let Some(folder) = project_dir().read().ok().and_then(|guard| guard.clone()) else {
@@ -3470,17 +3514,30 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
     }
 
     /// Reads a project file and resolves its sheets to paths.
-    fn read_project(path: &str) -> Result<Vec<std::path::PathBuf>, String> {
+    fn read_project(path: &str) -> Result<Vec<ProjectSheet>, String> {
         let text = std::fs::read_to_string(path)
             .map_err(|error| format!("cannot read {path}: {error}"))?;
         let base = std::path::Path::new(path)
             .parent()
             .map(|parent| parent.to_path_buf())
             .unwrap_or_default();
-        let mut sheets = Vec::new();
+        let mut sheets: Vec<ProjectSheet> = Vec::new();
         for line in text.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            // `number` and `title` belong to the sheet above them.
+            if let Some(value) = line.strip_prefix("number ") {
+                if let Some(current) = sheets.last_mut() {
+                    current.number = value.trim().to_string();
+                }
+                continue;
+            }
+            if let Some(value) = line.strip_prefix("title ") {
+                if let Some(current) = sheets.last_mut() {
+                    current.title = value.trim().to_string();
+                }
                 continue;
             }
             let Some(name) = line.strip_prefix("sheet ") else {
@@ -3497,7 +3554,11 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                 base.join(candidate)
             };
             if resolved.is_file() {
-                sheets.push(resolved);
+                sheets.push(ProjectSheet {
+                    path: resolved,
+                    number: String::new(),
+                    title: String::new(),
+                });
             }
         }
         if sheets.is_empty() {
@@ -3678,9 +3739,16 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                     // `ELECPROJECT <folder> [out.xlsx]`: the optional path writes the
                     // project BOM, the per-sheet summary and the class breakdown.
                     let mut words = argument.split_whitespace();
-                    if let Some(folder) = words.next() {
+                    if let Some(first) = words.next() {
                         let out = words.next();
-                        return Some(self.elec_project(Some(folder), out));
+                        // A single .xlsx argument means "the open project, written here".
+                        if out.is_none()
+                            && first.to_ascii_lowercase().ends_with(".xlsx")
+                            && project_file().read().map(|guard| guard.is_some()).unwrap_or(false)
+                        {
+                            return Some(self.elec_project(None, Some(first)));
+                        }
+                        return Some(self.elec_project(Some(first), out));
                     }
                 }
                 if let Some(argument) = cmd.strip_prefix("ELECNEW ") {
