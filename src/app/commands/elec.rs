@@ -3811,6 +3811,155 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
             .collect()
     }
 
+    /// `ELECSHEET [A4|A3|A2|A1] [title]` draws a drawing frame and title block.
+    ///
+    /// The drawings imported from the old system carried no frame at all - the frame came
+    /// from page setup at plot time - so a printed sheet had no border, no sheet number and
+    /// no title. This draws them into the drawing, taking the number and title from the
+    /// project file when the sheet is part of one.
+    pub(super) fn elec_sheet(&mut self, i: usize, size: &str, title: &str) -> Task<Message> {
+        let (paper_w, paper_h) = match size.trim().to_ascii_uppercase().as_str() {
+            "A3" => (420.0_f64, 297.0_f64),
+            "A2" => (594.0, 420.0),
+            "A1" => (841.0, 594.0),
+            "A0" => (1189.0, 841.0),
+            _ => (297.0, 210.0),
+        };
+
+        // What the title block says about this sheet: project metadata if this file is in
+        // the open project, otherwise whatever the caller supplied.
+        let current = self.tabs[i]
+            .current_path
+            .clone()
+            .map(|path| std::path::PathBuf::from(path));
+        let mut sheet_number = String::new();
+        let mut sheet_title = title.trim().to_string();
+        let mut project_name = String::new();
+        if let Some(file) = project_file().read().ok().and_then(|guard| guard.clone()) {
+            project_name = file
+                .file_stem()
+                .and_then(|name| name.to_str())
+                .unwrap_or("project")
+                .to_string();
+            if let Ok(sheets) = Self::read_project(&file.display().to_string()) {
+                if let Some(current) = &current {
+                    for (index, sheet) in sheets.iter().enumerate() {
+                        let same = sheet.path.file_name() == current.file_name();
+                        if !same {
+                            continue;
+                        }
+                        sheet_number = if sheet.number.is_empty() {
+                            (index + 1).to_string()
+                        } else {
+                            sheet.number.clone()
+                        };
+                        if sheet_title.is_empty() {
+                            sheet_title = sheet.title.clone();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        let mut lines: Vec<(f64, f64, f64, f64)> = Vec::new();
+        let mut texts: Vec<(String, f64, f64, f64)> = Vec::new();
+
+        // Border and inner frame.
+        lines.push((0.0, 0.0, paper_w, 0.0));
+        lines.push((paper_w, 0.0, paper_w, paper_h));
+        lines.push((paper_w, paper_h, 0.0, paper_h));
+        lines.push((0.0, paper_h, 0.0, 0.0));
+        let inset = 10.0;
+        lines.push((inset, inset, paper_w - inset, inset));
+        lines.push((paper_w - inset, inset, paper_w - inset, paper_h - inset));
+        lines.push((paper_w - inset, paper_h - inset, inset, paper_h - inset));
+        lines.push((inset, paper_h - inset, inset, inset));
+
+        // Title block, bottom right inside the frame.
+        let block_w = 120.0_f64;
+        let block_h = 32.0_f64;
+        let left = paper_w - inset - block_w;
+        let bottom = inset;
+        lines.push((left, bottom, left + block_w, bottom));
+        lines.push((left + block_w, bottom, left + block_w, bottom + block_h));
+        lines.push((left + block_w, bottom + block_h, left, bottom + block_h));
+        lines.push((left, bottom + block_h, left, bottom));
+        // Rows: sheet number strip, title, project, footer.
+        let row1 = bottom + 20.0;
+        let row2 = bottom + 12.0;
+        let row3 = bottom + 6.0;
+        lines.push((left, row1, left + block_w, row1));
+        lines.push((left, row2, left + block_w, row2));
+        lines.push((left, row3, left + block_w, row3));
+        // Vertical divider in the footer row for date / size.
+        let split = left + block_w * 0.65;
+        lines.push((split, bottom, split, row3));
+
+        let number_text = if sheet_number.is_empty() {
+            "SHEET".to_string()
+        } else {
+            format!("SHEET {sheet_number}")
+        };
+        texts.push((number_text, left + 2.0, bottom + 23.0, 6.0));
+        texts.push((
+            if sheet_title.is_empty() {
+                "UNTITLED".to_string()
+            } else {
+                sheet_title.to_uppercase()
+            },
+            left + 2.0,
+            bottom + 14.0,
+            4.0,
+        ));
+        texts.push((
+            if project_name.is_empty() {
+                "ARYACAD ELECTRICAL".to_string()
+            } else {
+                project_name.to_uppercase()
+            },
+            left + 2.0,
+            bottom + 8.0,
+            3.0,
+        ));
+        let size_label = format!(
+            "{}  {} x {}",
+            size.trim().to_ascii_uppercase(),
+            paper_w as i64,
+            paper_h as i64
+        );
+        texts.push((size_label, split + 2.0, bottom + 2.0, 2.5));
+        texts.push(("1:1".to_string(), left + 2.0, bottom + 2.0, 2.5));
+
+        self.push_undo_snapshot(i, "ELECSHEET");
+        for (ax, ay, bx, by) in lines {
+            let mut line = codec::entities::Line::from_points(
+                codec::types::Vector3::new(ax, ay, 0.0),
+                codec::types::Vector3::new(bx, by, 0.0),
+            );
+            line.common.layer = "ELEC-FRAME".to_string();
+            self.tabs[i].scene.add_entity(codec::EntityType::Line(line));
+        }
+        for (value, x, y, height) in texts {
+            let mut text = codec::entities::Text::new();
+            text.value = value;
+            text.height = height;
+            text.insertion_point = codec::types::Vector3::new(x, y, 0.0);
+            text.common.layer = "ELEC-FRAME".to_string();
+            self.tabs[i].scene.add_entity(codec::EntityType::Text(text));
+        }
+        self.tabs[i].dirty = true;
+
+        let summary = format!(
+            "ELECSHEET: {} frame {paper_w:.0}x{paper_h:.0} on the {inset:.0} margin; title block shows sheet {} / {}.",
+            size.trim().to_ascii_uppercase(),
+            if sheet_number.is_empty() { "-" } else { &sheet_number },
+            if sheet_title.is_empty() { "-" } else { &sheet_title }
+        );
+        self.command_line.push_output(&summary);
+        Task::none()
+    }
+
     /// Command entry point. Returns `None` when the command is not ours so the shared
     /// dispatcher can try the next family.
     pub(super) fn dispatch_elec(&mut self, cmd: &str, i: usize) -> Option<Task<Message>> {
@@ -3974,6 +4123,15 @@ fn components_of(document: &codec::Document) -> Vec<Component> {
                         ))
                     });
                     return Some(self.elec_plc(i, tag, points, base, at));
+                }
+                if let Some(argument) = cmd.strip_prefix("ELECSHEET ") {
+                    let mut words = argument.split_whitespace();
+                    let size = words.next().unwrap_or("A4");
+                    let title = argument.trim().trim_start_matches(size).trim();
+                    return Some(self.elec_sheet(i, size, title));
+                }
+                if cmd == "ELECSHEET" {
+                    return Some(self.elec_sheet(i, "A4", ""));
                 }
                 if cmd == "ELECPROJNUM" {
                     return Some(self.elec_proj_number(true));

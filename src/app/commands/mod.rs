@@ -1314,6 +1314,7 @@ inventory::submit!(crate::command::CommandRegistration {
         "ELECPROJOPEN",
         "ELECPROJLIST",
         "ELECPROJNUM",
+        "ELECSHEET",
         "ELECPROJECT",
         "ELECWIRE",
         "ELECMAKESYMBOL",
@@ -1931,6 +1932,7 @@ mod ribbon_highlight_tests {
         assert_eq!(app.ribbon.active_tool(), None);
     }
 }
+
 
 
 
